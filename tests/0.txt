@@ -1,0 +1,1 @@
+VAR $1a = (23)x.1 AS FLOAT

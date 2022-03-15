@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Stack;
 
 interface CharacterToIndexFunction {
     public int apply(char character);
@@ -13,6 +14,7 @@ interface DFATerminator {
 public class Lexer {
     private String sourceCode;
     private List<Token> tokens = new ArrayList<Token>();
+    private Stack<Token> codeBlock = new Stack<Token>();
 
     public Lexer(String sourceCode) {
         this.sourceCode = sourceCode;
@@ -108,6 +110,8 @@ public class Lexer {
             }
         }
         tokens.add(new Token(TokenType.EOF, "EOF"));
+        if (!codeBlock.isEmpty())
+            throw new Exception(String.format("STOP is missing START"));
         return tokens;
     }
 
@@ -493,6 +497,18 @@ public class Lexer {
             Token temp;
             if (Token.reservedWords.containsKey(res)) {
                 temp = new Token(Token.reservedWords.get(res), res);
+                switch (temp.type) {
+                    case START:
+                        if (codeBlock.isEmpty())
+                            throw new Exception(String.format("START is missing STOP"));
+                        codeBlock.pop();
+                        break;
+                    case STOP:
+                        codeBlock.push(temp);
+                        break;
+                    default:
+                        break;
+                }
                 tokens.add(temp);
             } else {
                 temp = new Token(TokenType.IDENTIFIER, res);

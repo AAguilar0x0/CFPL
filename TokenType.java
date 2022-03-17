@@ -4,18 +4,18 @@ public enum TokenType {
 
     COMMA, ASSIGNMENT, COLON, // , = :
     OCTOTHORPE, AMPERSAND, // # &
-    ADDITION, SUBTRACTION, MULTIPLICATION, DIVISION, MODULO,
+    ADDITION, SUBTRACTION, MULTIPLICATION, DIVISION, MODULO, // + - * / %
 
     GREATER, LESSER, // > <
     GREATER_EQUAL, LESSER_EQUAL, // >= <=
     EQUAL, NOT_EQUAL, // == <>
 
-    IDENTIFIER, // ^([A-Za-z+_+$][A-Za-z+_+$]*)
+    IDENTIFIER,
 
-    CHAR_LIT, // ^('.*')
-    INT_LIT, // ^((-)[0-9]{1,32})
-    FLOAT_LIT, // ^() ambot unsay regex ani
-    BOOL_LIT, // ^(TRUE|FALSE)
+    CHAR_LIT,
+    INT_LIT,
+    FLOAT_LIT,
+    BOOL_LIT,
     STR_LIT,
 
     // RESERVED WORDS
@@ -24,6 +24,5 @@ public enum TokenType {
     VAR, AS,
     INT, BOOL, FLOAT, CHAR,
     START, STOP,
-    IF, ELSE, WHILE, EOF,
-    ENDL
+    IF, ELSE, WHILE, EOL, EOF
 }

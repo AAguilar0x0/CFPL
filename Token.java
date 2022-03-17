@@ -1,8 +1,6 @@
 import java.util.HashMap;
 
 public class Token {
-    public TokenType type;
-    public String lexeme;
     public static final HashMap<String, TokenType> reservedWords = new HashMap<String, TokenType>() {
         {
             put("AND", TokenType.AND);
@@ -23,6 +21,7 @@ public class Token {
             put("WHILE", TokenType.WHILE);
         }
     };
+
     public static final HashMap<String, TokenType> reservedCharacters = new HashMap<String, TokenType>() {
         {
             put("(", TokenType.LEFT_PARENTHESIS);
@@ -44,12 +43,19 @@ public class Token {
         }
     };
 
-    public Token(TokenType type, String lexeme) {
+    final TokenType type;
+    final String lexeme;
+    final Object literal;
+    final int line;
+
+    public Token(TokenType type, String lexeme, Object literal, int line) {
         this.type = type;
         this.lexeme = lexeme;
+        this.literal = literal;
+        this.line = line;
     }
 
     public String toString() {
-        return String.format("Token(%s,\"%s\")", type, lexeme);
+        return String.format("Token(%s,\"%s\",%s,%d)", type, lexeme, literal, line);
     }
 }

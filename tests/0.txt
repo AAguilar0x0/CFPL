@@ -1,1 +1,8 @@
-VAR $1a = (23)x.1 AS FLOAT
+VAR xyz, abc=100 AS INT
+START xyz= ((abc *5)/10 + 10) * -1
+    * xyz should have the value -60
+    INPUT: xyz
+    IF(xyz == -60)START xyz = xyz + 1 STOP ELSE START xyz = 30 STOP OUTPUT: "[[]" & xyz & "[]]"
+    xyz = 5 % 2
+    OUTPUT: "#" & xyz
+STOP

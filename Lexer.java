@@ -15,6 +15,7 @@ public class Lexer {
     private String sourceCode;
     private List<Token> tokens = new ArrayList<Token>();
     private Stack<Token> codeBlock = new Stack<Token>();
+    private int line = 0;
 
     public Lexer(String sourceCode) {
         this.sourceCode = sourceCode;
@@ -30,52 +31,52 @@ public class Lexer {
             char current = sourceCode.charAt(i);
             if (current == '\n') {
                 firstInLine = true;
-                tokens.add(new Token(TokenType.ENDL, "ENDL"));
+                tokens.add(new Token(TokenType.EOL, "EOL", null, line++));
             }
             if (!Character.isWhitespace(current)) {
                 switch (current) {
                     case '(':
-                        tokens.add(new Token(TokenType.LEFT_PARENTHESIS, Character.toString(current)));
+                        tokens.add(new Token(TokenType.LEFT_PARENTHESIS, Character.toString(current), null, line));
                         break;
                     case ')':
-                        tokens.add(new Token(TokenType.RIGHT_PARENTHESIS, Character.toString(current)));
+                        tokens.add(new Token(TokenType.RIGHT_PARENTHESIS, Character.toString(current), null, line));
                         break;
                     case '[':
-                        tokens.add(new Token(TokenType.LEFT_BRACE, Character.toString(current)));
+                        tokens.add(new Token(TokenType.LEFT_BRACE, Character.toString(current), null, line));
                         break;
                     case ']':
-                        tokens.add(new Token(TokenType.RIGHT_BRACE, Character.toString(current)));
+                        tokens.add(new Token(TokenType.RIGHT_BRACE, Character.toString(current), null, line));
                         break;
                     case ',':
-                        tokens.add(new Token(TokenType.COMMA, Character.toString(current)));
+                        tokens.add(new Token(TokenType.COMMA, Character.toString(current), null, line));
                         break;
                     case ':':
-                        tokens.add(new Token(TokenType.COLON, Character.toString(current)));
+                        tokens.add(new Token(TokenType.COLON, Character.toString(current), null, line));
                         break;
                     case '#':
-                        tokens.add(new Token(TokenType.OCTOTHORPE, Character.toString(current)));
+                        tokens.add(new Token(TokenType.OCTOTHORPE, Character.toString(current), null, line));
                         break;
                     case '&':
-                        tokens.add(new Token(TokenType.AMPERSAND, Character.toString(current)));
+                        tokens.add(new Token(TokenType.AMPERSAND, Character.toString(current), null, line));
                         break;
                     case '+':
-                        tokens.add(new Token(TokenType.ADDITION, Character.toString(current)));
+                        tokens.add(new Token(TokenType.ADDITION, Character.toString(current), null, line));
                         break;
                     case '-':
-                        tokens.add(new Token(TokenType.SUBTRACTION, Character.toString(current)));
+                        tokens.add(new Token(TokenType.SUBTRACTION, Character.toString(current), null, line));
                         break;
                     case '*':
                         if (firstInLine) {
                             i = comment(i);
                             break;
                         }
-                        tokens.add(new Token(TokenType.MULTIPLICATION, Character.toString(current)));
+                        tokens.add(new Token(TokenType.MULTIPLICATION, Character.toString(current), null, line));
                         break;
                     case '/':
-                        tokens.add(new Token(TokenType.DIVISION, Character.toString(current)));
+                        tokens.add(new Token(TokenType.DIVISION, Character.toString(current), null, line));
                         break;
                     case '%':
-                        tokens.add(new Token(TokenType.MODULO, Character.toString(current)));
+                        tokens.add(new Token(TokenType.MODULO, Character.toString(current), null, line));
                         break;
                     case '=':
                         i = assign_equal(i);
@@ -109,7 +110,7 @@ public class Lexer {
                 firstInLine = false;
             }
         }
-        tokens.add(new Token(TokenType.EOF, "EOF"));
+        tokens.add(new Token(TokenType.EOF, "EOF", null, line));
         if (!codeBlock.isEmpty())
             throw new Exception(String.format("STOP is missing START"));
         return tokens;
@@ -119,6 +120,7 @@ public class Lexer {
         char current = sourceCode.charAt(i);
         while (current != '\n')
             current = sourceCode.charAt(++i);
+        line++;
         return i;
     }
 
@@ -126,12 +128,12 @@ public class Lexer {
         ++i;
         char current = sourceCode.charAt(i);
         if (current == '=') {
-            tokens.add(new Token(TokenType.EQUAL, "=="));
+            tokens.add(new Token(TokenType.EQUAL, "==", null, line));
             return i;
         }
         --i;
         current = sourceCode.charAt(i);
-        tokens.add(new Token(TokenType.ASSIGNMENT, Character.toString(current)));
+        tokens.add(new Token(TokenType.ASSIGNMENT, Character.toString(current), null, line));
         return i;
     }
 
@@ -139,16 +141,16 @@ public class Lexer {
         ++i;
         char current = sourceCode.charAt(i);
         if (current == '=') {
-            tokens.add(new Token(TokenType.LESSER_EQUAL, "<="));
+            tokens.add(new Token(TokenType.LESSER_EQUAL, "<=", null, line));
             return i;
         }
         if (current == '>') {
-            tokens.add(new Token(TokenType.NOT_EQUAL, "<>"));
+            tokens.add(new Token(TokenType.NOT_EQUAL, "<>", null, line));
             return i;
         }
         --i;
         current = sourceCode.charAt(i);
-        tokens.add(new Token(TokenType.LESSER, Character.toString(current)));
+        tokens.add(new Token(TokenType.LESSER, Character.toString(current), null, line));
         return i;
     }
 
@@ -156,12 +158,12 @@ public class Lexer {
         ++i;
         char current = sourceCode.charAt(i);
         if (current == '=') {
-            tokens.add(new Token(TokenType.GREATER_EQUAL, ">="));
+            tokens.add(new Token(TokenType.GREATER_EQUAL, ">=", null, line));
             return i;
         }
         --i;
         current = sourceCode.charAt(i);
-        tokens.add(new Token(TokenType.GREATER, Character.toString(current)));
+        tokens.add(new Token(TokenType.GREATER, Character.toString(current), null, line));
         return i;
     }
 
@@ -174,10 +176,10 @@ public class Lexer {
         --i;
         current = sourceCode.charAt(i);
         if (current == '\'') {
-            tokens.add(new Token(TokenType.CHAR_LIT, ""));
+            tokens.add(new Token(TokenType.CHAR_LIT, "", '\0', line));
             return i;
         }
-        tokens.add(new Token(TokenType.CHAR_LIT, Character.toString(current)));
+        tokens.add(new Token(TokenType.CHAR_LIT, Character.toString(current), current, line));
         return ++i;
     }
 
@@ -201,6 +203,10 @@ public class Lexer {
         }
         int[] result = { currentIndex == sourceCode.length() ? 1 : 0, currentState, currentIndex - 1 };
         return result;
+    }
+
+    private boolean stringToBool(String lexeme) {
+        return lexeme.equals("TRUE");
     }
 
     private int bool_literal(int i) throws Exception {
@@ -267,7 +273,8 @@ public class Lexer {
         if (result[0] == 1)
             throw new Exception(String.format("Unclosed bool literal: %s", sourceCode.substring(i, result[2])));
         if (finalState.contains(result[1])) {
-            tokens.add(new Token(TokenType.BOOL_LIT, sourceCode.substring(i, result[2])));
+            String boolLexeme = sourceCode.substring(i, result[2]);
+            tokens.add(new Token(TokenType.BOOL_LIT, boolLexeme, stringToBool(boolLexeme), line));
             returnIndex = result[2];
         }
         return returnIndex;
@@ -409,7 +416,7 @@ public class Lexer {
             else
                 literal += current;
         }
-        tokens.add(new Token(TokenType.STR_LIT, literal));
+        tokens.add(new Token(TokenType.STR_LIT, literal, literal, line));
         return i;
     }
 
@@ -427,6 +434,7 @@ public class Lexer {
         HashSet<Integer> finalState = new HashSet<Integer>() {
             {
                 add(1);
+                add(2);
                 add(4);
             }
         };
@@ -450,10 +458,10 @@ public class Lexer {
         if (deadState.contains(result[1]))
             throw new Exception(String.format("Invalid number literal: %s", res));
         if (result[1] == 1) {
-            tokens.add(new Token(TokenType.INT_LIT, res));
+            tokens.add(new Token(TokenType.INT_LIT, res, Integer.parseInt(res), line));
             returnIndex = result[2];
-        } else if (result[1] == 4) {
-            tokens.add(new Token(TokenType.FLOAT_LIT, res));
+        } else if (finalState.contains(result[1])) {
+            tokens.add(new Token(TokenType.FLOAT_LIT, res, Double.parseDouble(res), line));
             returnIndex = result[2];
         }
         return returnIndex;
@@ -496,22 +504,22 @@ public class Lexer {
         if (finalState.contains(result[1])) {
             Token temp;
             if (Token.reservedWords.containsKey(res)) {
-                temp = new Token(Token.reservedWords.get(res), res);
+                temp = new Token(Token.reservedWords.get(res), res, null, line);
                 switch (temp.type) {
                     case START:
-                        if (codeBlock.isEmpty())
-                            throw new Exception(String.format("START is missing STOP"));
-                        codeBlock.pop();
+                        codeBlock.push(temp);
                         break;
                     case STOP:
-                        codeBlock.push(temp);
+                        if (codeBlock.isEmpty())
+                            throw new Exception(String.format("- (%d) STOP is missing START", line));
+                        codeBlock.pop();
                         break;
                     default:
                         break;
                 }
                 tokens.add(temp);
             } else {
-                temp = new Token(TokenType.IDENTIFIER, res);
+                temp = new Token(TokenType.IDENTIFIER, res, null, line);
                 tokens.add(temp);
             }
             returnIndex = result[2];

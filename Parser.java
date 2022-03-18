@@ -154,7 +154,13 @@ public class Parser {
     }
 
     private Stmt varDeclaration() throws Exception {
-        Token name = consume(TokenType.IDENTIFIER, "Expected variable name.");
+        Token name;
+        if (check(TokenType.IDENTIFIER))
+            name = consume(TokenType.IDENTIFIER, "Expected variable name.");
+        else if (Token.reservedWords.containsKey(peek().lexeme))
+            throw error(peek(), "Expected valid variable name but got reserved keyword.");
+        else
+            throw error(peek(), "Expected valid variable name.");
         TokenType type;
 
         int tempCurrent = current;

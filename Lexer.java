@@ -112,7 +112,7 @@ public class Lexer {
         }
         tokens.add(new Token(TokenType.EOF, "EOF", null, line));
         if (!codeBlock.isEmpty())
-            throw new Exception(String.format("STOP is missing START"));
+            throw new Exception(String.format("START is missing STOP"));
         return tokens;
     }
 

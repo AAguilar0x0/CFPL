@@ -80,21 +80,21 @@ public class Parser {
         consume(TokenType.LEFT_PARENTHESIS, "Expected '(' after 'if'.");
         Expr condition = expression();
         consume(TokenType.RIGHT_PARENTHESIS, "Expected ')' after if condition.");
-        disregardEOL();
+        consume(TokenType.EOL, "Expected new line after ')'.");
         consume(TokenType.START, "Expected START after if condition.");
-        disregardEOL();
+        consume(TokenType.EOL, "Expected new line after if START.");
 
         Stmt thenBranch = statement();
         Stmt elseBranch = null;
         consume(TokenType.STOP, "Expected STOP for code block.");
-        disregardEOL();
+        consume(TokenType.EOL, "Expected new line after if STOP.");
         if (match(TokenType.ELSE)) {
-            disregardEOL();
+            consume(TokenType.EOL, "Expected new line after if ELSE.");
             consume(TokenType.START, "Expected START after if condition.");
-            disregardEOL();
+            consume(TokenType.EOL, "Expected new line after if START.");
             elseBranch = statement();
             consume(TokenType.STOP, "Expected STOP for code block.");
-            disregardEOL();
+            consume(TokenType.EOL, "Expected new line after if STOP.");
         }
 
         return new Stmt.If(condition, thenBranch, elseBranch);
@@ -103,10 +103,7 @@ public class Parser {
     private Stmt printStatement() throws Exception {
         consume(TokenType.COLON, "Expected ':' after 'OUTPUT'.");
         Expr value = expression();
-        if (check(TokenType.STOP))
-            ;
-        else
-            consume(TokenType.EOL, "Expected new line after expression.");
+        consume(TokenType.EOL, "Expected new line after expression.");
         return new Stmt.Print(value);
     }
 
@@ -116,10 +113,7 @@ public class Parser {
         variables.add(new Expr.Variable(consume(TokenType.IDENTIFIER, "Expected identifier for input")));
         while (match(TokenType.COMMA))
             variables.add(new Expr.Variable(consume(TokenType.IDENTIFIER, "Expected identifier for input")));
-        if (check(TokenType.STOP))
-            ;
-        else
-            consume(TokenType.EOL, "Expected new line after expression.");
+        consume(TokenType.EOL, "Expected new line after expression.");
         return new Stmt.Input(variables.toArray(new Expr.Variable[0]));
     }
 
@@ -211,7 +205,7 @@ public class Parser {
         if (consume(TokenType.AS, "Expected declaration variable data type.") != null
                 && !match(TokenType.BOOL, TokenType.CHAR, TokenType.FLOAT, TokenType.INT))
             throw error(name, "Expected declaration variable data type.");
-        disregardEOL();
+        consume(TokenType.EOL, "Expected new line after declaration.");
 
         if (manyDeclaration)
             returnVar = (Stmt.Var) statements.remove(statements.size() - 1);
@@ -223,12 +217,12 @@ public class Parser {
         consume(TokenType.LEFT_PARENTHESIS, "Expected '(' after 'while'.");
         Expr condition = expression();
         consume(TokenType.RIGHT_PARENTHESIS, "Expected ')' after condition.");
-        disregardEOL();
+        consume(TokenType.EOL, "Expected new line after ')'.");
         consume(TokenType.START, "Expected STOP for code block.");
-        disregardEOL();
+        consume(TokenType.EOL, "Expected new line after START.");
         Stmt body = statement();
         consume(TokenType.STOP, "Expected STOP for code block.");
-        disregardEOL();
+        consume(TokenType.EOL, "Expected new line after STOP.");
 
         return new Stmt.While(condition, body);
     }
@@ -244,14 +238,13 @@ public class Parser {
 
     private List<Stmt> block() throws Exception {
         List<Stmt> statements = new ArrayList<>();
-
-        disregardEOL();
+        consume(TokenType.EOL, "Missing new line after START");
         while (!check(TokenType.STOP) && !isAtEnd()) {
             statements.add(declaration());
         }
 
         consume(TokenType.STOP, "Expected STOP after block.");
-        disregardEOL();
+        consume(TokenType.EOL, "Missing new line after STOP");
         return statements;
     }
 

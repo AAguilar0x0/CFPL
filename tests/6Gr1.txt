@@ -1,3 +1,4 @@
+* 
 VAR a AS INT
 VAR b AS INT
 START

@@ -1,3 +1,4 @@
+* [-60]
 VAR xyz, abc=100 AS INT
 START
     xyz= ((abc *5)/10 + 10) * -1

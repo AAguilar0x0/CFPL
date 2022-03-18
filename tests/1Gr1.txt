@@ -1,1 +1,2 @@
+* [Error] - (1) STOP is missing START
 STOP

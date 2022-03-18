@@ -16,6 +16,7 @@ public class Lexer {
     private List<Token> tokens = new ArrayList<Token>();
     private Stack<Token> codeBlock = new Stack<Token>();
     private int line = 0;
+    boolean firstInLine = true;
 
     public Lexer(String sourceCode) {
         this.sourceCode = sourceCode;
@@ -26,10 +27,9 @@ public class Lexer {
     }
 
     public List<Token> run() throws Exception {
-        boolean firstInLine = true;
         for (int i = 0; i < sourceCode.length(); i++) {
             char current = sourceCode.charAt(i);
-            if (current == '\n') {
+            if (!firstInLine && current == '\n') {
                 firstInLine = true;
                 tokens.add(new Token(TokenType.EOL, "EOL", null, line++));
             }
@@ -68,7 +68,7 @@ public class Lexer {
                     case '*':
                         if (firstInLine) {
                             i = comment(i);
-                            break;
+                            continue;
                         }
                         tokens.add(new Token(TokenType.MULTIPLICATION, Character.toString(current), null, line));
                         break;
@@ -121,6 +121,7 @@ public class Lexer {
         while (current != '\n')
             current = sourceCode.charAt(++i);
         line++;
+        firstInLine = true;
         return i;
     }
 

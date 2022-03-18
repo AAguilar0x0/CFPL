@@ -22,24 +22,44 @@ public class Token {
         }
     };
 
-    public static final HashMap<String, TokenType> reservedCharacters = new HashMap<String, TokenType>() {
+    public static final HashMap<TokenType, String> tokenTypeToLexeme = new HashMap<TokenType, String>() {
         {
-            put("(", TokenType.LEFT_PARENTHESIS);
-            put(")", TokenType.RIGHT_PARENTHESIS);
-            put("[", TokenType.LEFT_BRACE);
-            put("]", TokenType.RIGHT_BRACE);
-            put(",", TokenType.COMMA);
-            put("=", TokenType.ASSIGNMENT);
-            put(":", TokenType.COLON);
-            put("#", TokenType.OCTOTHORPE);
-            put("&", TokenType.AMPERSAND);
-            put("+", TokenType.ADDITION);
-            put("-", TokenType.SUBTRACTION);
-            put("*", TokenType.MULTIPLICATION);
-            put("/", TokenType.DIVISION);
-            put("%", TokenType.MODULO);
-            put(">", TokenType.GREATER);
-            put("<", TokenType.LESSER);
+            put(TokenType.LEFT_PARENTHESIS, "(");
+            put(TokenType.RIGHT_PARENTHESIS, ")");
+            put(TokenType.LEFT_BRACE, "[");
+            put(TokenType.RIGHT_BRACE, "]");
+            put(TokenType.COMMA, ",");
+            put(TokenType.ASSIGNMENT, "=");
+            put(TokenType.COLON, ":");
+            put(TokenType.OCTOTHORPE, "#");
+            put(TokenType.AMPERSAND, "&");
+            put(TokenType.ADDITION, "+");
+            put(TokenType.SUBTRACTION, "-");
+            put(TokenType.MULTIPLICATION, "*");
+            put(TokenType.DIVISION, "/");
+            put(TokenType.MODULO, "%");
+            put(TokenType.GREATER, ">");
+            put(TokenType.LESSER, "<");
+            put(TokenType.GREATER_EQUAL, ">=");
+            put(TokenType.LESSER_EQUAL, "<=");
+            put(TokenType.EQUAL, "==");
+            put(TokenType.NOT_EQUAL, "<>");
+            put(TokenType.AND, "AND");
+            put(TokenType.OR, "OR");
+            put(TokenType.NOT, "NOT");
+            put(TokenType.OUTPUT, "OUTPUT");
+            put(TokenType.INPUT, "INPUT");
+            put(TokenType.VAR, "VAR");
+            put(TokenType.AS, "AS");
+            put(TokenType.INT, "INT");
+            put(TokenType.BOOL, "BOOL");
+            put(TokenType.FLOAT, "FLOAT");
+            put(TokenType.CHAR, "CHAR");
+            put(TokenType.START, "START");
+            put(TokenType.STOP, "STOP");
+            put(TokenType.IF, "IF");
+            put(TokenType.ELSE, "ELSE");
+            put(TokenType.WHILE, "WHILE");
         }
     };
 

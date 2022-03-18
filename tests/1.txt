@@ -1,3 +1,5 @@
+* 10hi10
+* a#
 * my first program in CFPL
 VAR abc, b, c AS INT
 VAR x, w_23='w' AS CHAR

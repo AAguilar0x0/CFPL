@@ -29,7 +29,7 @@ public class CFPL {
             lexer = new Lexer(sourceCode);
             List<Token> tokens = lexer.run();
             parser = new Parser(tokens, sourceCode);
-            List<Stmt> statements = parser.parse();
+            List<ParsingStatement> statements = parser.parse();
             interpret = new Interpreter();
             interpret.interpret(statements);
         } catch (Exception e) {

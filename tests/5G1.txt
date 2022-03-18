@@ -1,3 +1,6 @@
+* [Error] Expected valid variable name but got reserved keyword.
+* line-number 3 on WHILE 'WHILE'
+* VAR WHILE AS INT
 VAR WHILE AS INT
 START 
 STOP

@@ -1,12 +1,12 @@
 import java.util.HashMap;
 import java.util.Map;
 
-class Environment {
-    final Environment enclosing;
-    private final Map<String, Object> values = new HashMap<>();
+class Storage {
+    final Storage scope;
+    private final Map<String, Object> variables = new HashMap<>();
 
-    Environment() {
-        enclosing = null;
+    Storage() {
+        scope = null;
     }
 
     // Environment(Environment enclosing) {
@@ -14,16 +14,16 @@ class Environment {
     // }
 
     Object get(Token name) throws Exception {
-        if (values.containsKey(name.lexeme)) {
-            return values.get(name.lexeme);
+        if (variables.containsKey(name.lexeme)) {
+            return variables.get(name.lexeme);
         }
 
         throw new Exception("Undefined variable '" + name.lexeme + "'.");
     }
 
     void assign(Token name, Object value) throws Exception {
-        if (values.containsKey(name.lexeme)) {
-            values.put(name.lexeme, value);
+        if (variables.containsKey(name.lexeme)) {
+            variables.put(name.lexeme, value);
             return;
         }
 
@@ -31,6 +31,6 @@ class Environment {
     }
 
     void define(String name, Object value) {
-        values.put(name, value);
+        variables.put(name, value);
     }
 }

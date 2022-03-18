@@ -4,7 +4,7 @@ import java.util.List;
 public class Parser {
     private List<Token> tokens;
     private int current = 0;
-    List<Stmt> statements = new ArrayList<>();
+    List<ParsingStatement> statements = new ArrayList<>();
     String sourceCode;
 
     public Parser(List<Token> tokens, String sourceCode) {
@@ -26,98 +26,11 @@ public class Parser {
                 line++;
             }
         }
+
         return sourceCode.substring(start, end);
     }
 
-    private void disregardEOL() {
-        if (match(TokenType.EOL))
-            ;
-    }
-
-    List<Stmt> parse() throws Exception {
-        // List<Stmt> statements = new ArrayList<>();
-        while (!isAtEnd()) {
-            statements.add(declaration());
-        }
-
-        return statements;
-        // return expression();
-    }
-
-    private Expr expression() throws Exception {
-        return assignment();
-        // return equality();
-    }
-
-    private Stmt declaration() throws Exception {
-        // try {
-        if (match(TokenType.VAR))
-            return varDeclaration();
-
-        return statement();
-        // } catch (Exception error) {
-        // synchronize();
-        // return null;
-        // }
-    }
-
-    private Stmt statement() throws Exception {
-        if (match(TokenType.IF))
-            return ifStatement();
-        if (match(TokenType.OUTPUT))
-            return printStatement();
-        if (match(TokenType.INPUT))
-            return inputStatement();
-        if (match(TokenType.WHILE))
-            return whileStatement();
-        if (match(TokenType.START))
-            return new Stmt.Block(block());
-
-        return expressionStatement();
-    }
-
-    private Stmt ifStatement() throws Exception {
-        consume(TokenType.LEFT_PARENTHESIS, "Expected '(' after 'if'.");
-        Expr condition = expression();
-        consume(TokenType.RIGHT_PARENTHESIS, "Expected ')' after if condition.");
-        consume(TokenType.EOL, "Expected new line after ')'.");
-        consume(TokenType.START, "Expected START after if condition.");
-        consume(TokenType.EOL, "Expected new line after if START.");
-
-        Stmt thenBranch = statement();
-        Stmt elseBranch = null;
-        consume(TokenType.STOP, "Expected STOP for code block.");
-        consume(TokenType.EOL, "Expected new line after if STOP.");
-        if (match(TokenType.ELSE)) {
-            consume(TokenType.EOL, "Expected new line after if ELSE.");
-            consume(TokenType.START, "Expected START after if condition.");
-            consume(TokenType.EOL, "Expected new line after if START.");
-            elseBranch = statement();
-            consume(TokenType.STOP, "Expected STOP for code block.");
-            consume(TokenType.EOL, "Expected new line after if STOP.");
-        }
-
-        return new Stmt.If(condition, thenBranch, elseBranch);
-    }
-
-    private Stmt printStatement() throws Exception {
-        consume(TokenType.COLON, "Expected ':' after 'OUTPUT'.");
-        Expr value = expression();
-        consume(TokenType.EOL, "Expected new line after expression.");
-        return new Stmt.Print(value);
-    }
-
-    private Stmt inputStatement() throws Exception {
-        consume(TokenType.COLON, "Expected ':' after 'OUTPUT'.");
-        List<Expr.Variable> variables = new ArrayList<Expr.Variable>();
-        variables.add(new Expr.Variable(consume(TokenType.IDENTIFIER, "Expected identifier for input")));
-        while (match(TokenType.COMMA))
-            variables.add(new Expr.Variable(consume(TokenType.IDENTIFIER, "Expected identifier for input")));
-        consume(TokenType.EOL, "Expected new line after expression.");
-        return new Stmt.Input(variables.toArray(new Expr.Variable[0]));
-    }
-
-    private Expr.Literal getDefaultLiteral(TokenType type) {
+    private ParsingExpression.Literal getDefaultLiteral(TokenType type) {
         Object value;
         switch (type) {
             case BOOL:
@@ -135,7 +48,8 @@ public class Parser {
             default:
                 value = null;
         }
-        return new Expr.Literal(value);
+
+        return new ParsingExpression.Literal(value);
     }
 
     private boolean checkType(TokenType expected, Object actual) {
@@ -153,165 +67,296 @@ public class Parser {
         }
     }
 
-    private Stmt varDeclaration() throws Exception {
+    List<ParsingStatement> parse() throws Exception {
+        while (!isAtEnd())
+            statements.add(parseDeclaration());
+
+        return statements;
+    }
+
+    private ParsingStatement parseDeclaration() throws Exception {
+        if (compareMultipleThenNext(TokenType.VAR))
+            return parseVariableDeclaration();
+
+        return parseStatement();
+    }
+
+    private ParsingStatement parseVariableDeclaration() throws Exception {
         Token name;
-        if (check(TokenType.IDENTIFIER))
-            name = consume(TokenType.IDENTIFIER, "Expected variable name.");
-        else if (Token.reservedWords.containsKey(peek().lexeme))
-            throw error(peek(), "Expected valid variable name but got reserved keyword.");
+        if (compareCurrent(TokenType.IDENTIFIER))
+            name = expectThenNext(TokenType.IDENTIFIER, "Expected variable name.");
+        else if (Token.reservedWords.containsKey(getCurrent().lexeme))
+            throw newError(getCurrent(), "Expected valid variable name but got reserved keyword.");
         else
-            throw error(peek(), "Expected valid variable name.");
+            throw newError(getCurrent(), "Expected valid variable name.");
         TokenType type;
 
         int tempCurrent = current;
-        while (!match(TokenType.AS, TokenType.EOL, TokenType.START))
+        while (!compareMultipleThenNext(TokenType.AS, TokenType.EOL, TokenType.START))
             current++;
-        if (match(TokenType.BOOL, TokenType.CHAR, TokenType.FLOAT, TokenType.INT))
-            type = previous().type;
+        if (compareMultipleThenNext(TokenType.BOOL, TokenType.CHAR, TokenType.FLOAT, TokenType.INT))
+            type = getPrevious().type;
         else
-            throw error(name, "Expected declaration variable data type.");
+            throw newError(name, "Expected declaration variable data type.");
         current = tempCurrent;
 
-        Expr initializer = null;
-        if (match(TokenType.ASSIGNMENT)) {
-            initializer = expression();
-            if (initializer instanceof Expr.Literal) {
-                Expr.Literal initial = (Expr.Literal) initializer;
+        ParsingExpression initializer = null;
+        if (compareMultipleThenNext(TokenType.ASSIGNMENT)) {
+            initializer = parseExpression();
+            if (initializer instanceof ParsingExpression.Literal) {
+                ParsingExpression.Literal initial = (ParsingExpression.Literal) initializer;
                 if (type == TokenType.FLOAT && checkType(TokenType.INT, initial.value))
-                    initializer = new Expr.Literal((double) initial.value);
+                    initializer = new ParsingExpression.Literal((double) initial.value);
                 else if (!checkType(type, initial.value))
-                    throw error(name, String.format("Expected %s type.", type));
+                    throw newError(name, String.format("Expected %s type.", type));
             }
         } else
             initializer = getDefaultLiteral(type);
 
-        Stmt.Var returnVar = new Stmt.Var(name, initializer);
+        ParsingStatement.Var returnVar = new ParsingStatement.Var(name, initializer);
 
         boolean manyDeclaration = false;
-        while (match(TokenType.COMMA)) {
+        while (compareMultipleThenNext(TokenType.COMMA)) {
             if (!manyDeclaration)
-                statements.add(new Stmt.Var(name, initializer));
+                statements.add(new ParsingStatement.Var(name, initializer));
             manyDeclaration = true;
-            name = consume(TokenType.IDENTIFIER, "Expected variable name.");
+            name = expectThenNext(TokenType.IDENTIFIER, "Expected variable name.");
             initializer = null;
-            if (match(TokenType.ASSIGNMENT)) {
-                initializer = expression();
-                if (initializer instanceof Expr.Literal) {
-                    Expr.Literal initial = (Expr.Literal) initializer;
+            if (compareMultipleThenNext(TokenType.ASSIGNMENT)) {
+                initializer = parseExpression();
+                if (initializer instanceof ParsingExpression.Literal) {
+                    ParsingExpression.Literal initial = (ParsingExpression.Literal) initializer;
                     if (type == TokenType.FLOAT && checkType(TokenType.INT, initial.value))
-                        initializer = new Expr.Literal((double) initial.value);
+                        initializer = new ParsingExpression.Literal((double) initial.value);
                     else if (!checkType(type, initial.value))
-                        throw error(name, String.format("Expected %s type.", type));
+                        throw newError(name, String.format("Expected %s type.", type));
                 }
             } else
                 initializer = getDefaultLiteral(type);
-            statements.add(new Stmt.Var(name, initializer));
+            statements.add(new ParsingStatement.Var(name, initializer));
         }
 
-        if (consume(TokenType.AS, "Expected declaration variable data type.") != null
-                && !match(TokenType.BOOL, TokenType.CHAR, TokenType.FLOAT, TokenType.INT))
-            throw error(name, "Expected declaration variable data type.");
-        consume(TokenType.EOL, "Expected new line after declaration.");
+        if (expectThenNext(TokenType.AS, "Expected declaration variable data type.") != null
+                && !compareMultipleThenNext(TokenType.BOOL, TokenType.CHAR, TokenType.FLOAT, TokenType.INT))
+            throw newError(name, "Expected declaration variable data type.");
+        expectThenNext(TokenType.EOL, "Expected new line after declaration.");
 
         if (manyDeclaration)
-            returnVar = (Stmt.Var) statements.remove(statements.size() - 1);
+            returnVar = (ParsingStatement.Var) statements.remove(statements.size() - 1);
 
         return returnVar;
     }
 
-    private Stmt whileStatement() throws Exception {
-        consume(TokenType.LEFT_PARENTHESIS, "Expected '(' after 'while'.");
-        Expr condition = expression();
-        consume(TokenType.RIGHT_PARENTHESIS, "Expected ')' after condition.");
-        consume(TokenType.EOL, "Expected new line after ')'.");
-        consume(TokenType.START, "Expected STOP for code block.");
-        consume(TokenType.EOL, "Expected new line after START.");
-        Stmt body = statement();
-        consume(TokenType.STOP, "Expected STOP for code block.");
-        consume(TokenType.EOL, "Expected new line after STOP.");
+    private ParsingStatement parseStatement() throws Exception {
+        if (compareMultipleThenNext(TokenType.IF))
+            return parseIf();
+        if (compareMultipleThenNext(TokenType.OUTPUT))
+            return parseOutput();
+        if (compareMultipleThenNext(TokenType.INPUT))
+            return parseInput();
+        if (compareMultipleThenNext(TokenType.WHILE))
+            return parseWhile();
+        if (compareMultipleThenNext(TokenType.START))
+            return new ParsingStatement.Block(parseBlock());
 
-        return new Stmt.While(condition, body);
+        return parseExpressionStatement();
     }
 
-    private Stmt expressionStatement() throws Exception {
-        Expr expr = expression();
-        if (check(TokenType.STOP))
-            ;
-        else
-            consume(TokenType.EOL, "Expected new line after expression.");
-        return new Stmt.Expression(expr);
+    private ParsingStatement parseExpressionStatement() throws Exception {
+        ParsingExpression expr = parseExpression();
+        expectThenNext(TokenType.EOL, "Expected new line after expression.");
+
+        return new ParsingStatement.Expression(expr);
     }
 
-    private List<Stmt> block() throws Exception {
-        List<Stmt> statements = new ArrayList<>();
-        consume(TokenType.EOL, "Missing new line after START");
-        while (!check(TokenType.STOP) && !isAtEnd()) {
-            statements.add(declaration());
+    private ParsingExpression parseExpression() throws Exception {
+        return parseAssignment();
+    }
+
+    private ParsingExpression parseAssignment() throws Exception {
+        ParsingExpression expr = parseLogicalOr();
+        if (compareMultipleThenNext(TokenType.ASSIGNMENT)) {
+            Token equals = getPrevious();
+            ParsingExpression value = parseAssignment();
+            if (expr instanceof ParsingExpression.Variable) {
+                Token name = ((ParsingExpression.Variable) expr).name;
+                return new ParsingExpression.Assign(name, value);
+            }
+            throw newError(equals, "Invalid assignment target.");
         }
 
-        consume(TokenType.STOP, "Expected STOP after block.");
-        consume(TokenType.EOL, "Missing new line after STOP");
+        return expr;
+    }
+
+    private ParsingExpression parseLogicalOr() throws Exception {
+        ParsingExpression expr = parseLogicalAnd();
+        while (compareMultipleThenNext(TokenType.OR)) {
+            Token operator = getPrevious();
+            ParsingExpression right = parseLogicalAnd();
+            expr = new ParsingExpression.Logical(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private ParsingExpression parseLogicalAnd() throws Exception {
+        ParsingExpression expr = parseEquality();
+        while (compareMultipleThenNext(TokenType.AND)) {
+            Token operator = getPrevious();
+            ParsingExpression right = parseEquality();
+            expr = new ParsingExpression.Logical(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private ParsingExpression parseEquality() throws Exception {
+        ParsingExpression expr = parseComparison();
+        while (compareMultipleThenNext(TokenType.NOT_EQUAL, TokenType.EQUAL)) {
+            Token operator = getPrevious();
+            ParsingExpression right = parseComparison();
+            expr = new ParsingExpression.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private ParsingExpression parseComparison() throws Exception {
+        ParsingExpression expr = parseTerm();
+        while (compareMultipleThenNext(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESSER,
+                TokenType.LESSER_EQUAL)) {
+            Token operator = getPrevious();
+            ParsingExpression right = parseTerm();
+            expr = new ParsingExpression.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private ParsingExpression parseTerm() throws Exception {
+        ParsingExpression expr = parseFactor();
+        while (compareMultipleThenNext(TokenType.SUBTRACTION, TokenType.ADDITION, TokenType.AMPERSAND)) {
+            Token operator = getPrevious();
+            ParsingExpression right = parseFactor();
+            expr = new ParsingExpression.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private ParsingExpression parseFactor() throws Exception {
+        ParsingExpression expr = parseUnary();
+        while (compareMultipleThenNext(TokenType.DIVISION, TokenType.MULTIPLICATION, TokenType.MODULO)) {
+            Token operator = getPrevious();
+            ParsingExpression right = parseUnary();
+            expr = new ParsingExpression.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private ParsingExpression parseUnary() throws Exception {
+        if (compareMultipleThenNext(TokenType.ADDITION, TokenType.SUBTRACTION)) {
+            Token operator = getPrevious();
+            ParsingExpression right = parseUnary();
+            return new ParsingExpression.Unary(operator, right);
+        }
+
+        return parsePrimary();
+    }
+
+    private ParsingExpression parsePrimary() throws Exception {
+        if (compareMultipleThenNext(TokenType.INT_LIT, TokenType.FLOAT_LIT, TokenType.BOOL_LIT, TokenType.CHAR_LIT,
+                TokenType.STR_LIT))
+            return new ParsingExpression.Literal(getPrevious().literal);
+        if (compareMultipleThenNext(TokenType.IDENTIFIER))
+            return new ParsingExpression.Variable(getPrevious());
+        if (compareMultipleThenNext(TokenType.LEFT_PARENTHESIS)) {
+            ParsingExpression expr = parseExpression();
+            expectThenNext(TokenType.RIGHT_PARENTHESIS, "Expected ')' after expression.");
+            return new ParsingExpression.Grouping(expr);
+        }
+
+        throw newError(getCurrent(), "Expected expression.");
+    }
+
+    private ParsingStatement parseIf() throws Exception {
+        expectThenNext(TokenType.LEFT_PARENTHESIS, "Expected '(' after 'if'.");
+        ParsingExpression condition = parseExpression();
+        expectTokenAndEOLNext(TokenType.RIGHT_PARENTHESIS, "Expected ')' after condition.");
+        expectTokenAndEOLNext(TokenType.START, "Expected 'START' before code block.");
+        ParsingStatement thenBranch = parseStatement();
+        ParsingStatement elseBranch = null;
+        expectTokenAndEOLNext(TokenType.STOP, "Expected 'STOP' after code block.");
+        if (compareMultipleThenNext(TokenType.ELSE)) {
+            expectThenNext(TokenType.EOL, "Expected new line after if 'ELSE'.");
+            expectTokenAndEOLNext(TokenType.START, "Expected 'START' before code block.");
+            elseBranch = parseStatement();
+            expectTokenAndEOLNext(TokenType.STOP, "Expected 'STOP' after code block.");
+        }
+
+        return new ParsingStatement.If(condition, thenBranch, elseBranch);
+    }
+
+    private ParsingStatement parseOutput() throws Exception {
+        expectThenNext(TokenType.COLON, "Expected ':' after 'OUTPUT'.");
+        ParsingExpression value = parseExpression();
+        expectThenNext(TokenType.EOL, "Expected new line after expression.");
+
+        return new ParsingStatement.Print(value);
+    }
+
+    private ParsingStatement parseInput() throws Exception {
+        expectThenNext(TokenType.COLON, "Expected ':' after 'OUTPUT'.");
+        List<ParsingExpression.Variable> variables = new ArrayList<ParsingExpression.Variable>();
+        variables.add(
+                new ParsingExpression.Variable(expectThenNext(TokenType.IDENTIFIER, "Expected identifier for input")));
+        while (compareMultipleThenNext(TokenType.COMMA))
+            variables.add(new ParsingExpression.Variable(
+                    expectThenNext(TokenType.IDENTIFIER, "Expected identifier for input")));
+        expectThenNext(TokenType.EOL, "Expected new line after expression.");
+
+        return new ParsingStatement.Input(variables.toArray(new ParsingExpression.Variable[0]));
+    }
+
+    private ParsingStatement parseWhile() throws Exception {
+        expectThenNext(TokenType.LEFT_PARENTHESIS, "Expected '(' after 'while'.");
+        ParsingExpression condition = parseExpression();
+        expectTokenAndEOLNext(TokenType.RIGHT_PARENTHESIS, "Expected ')' after condition.");
+        expectTokenAndEOLNext(TokenType.START, "Expected 'START' before code block.");
+        ParsingStatement body = parseStatement();
+        expectTokenAndEOLNext(TokenType.STOP, "Expected 'STOP' after code block.");
+
+        return new ParsingStatement.While(condition, body);
+    }
+
+    private List<ParsingStatement> parseBlock() throws Exception {
+        List<ParsingStatement> statements = new ArrayList<>();
+        expectThenNext(TokenType.EOL, "Missing new line after START");
+        while (!compareCurrent(TokenType.STOP) && !isAtEnd())
+            statements.add(parseDeclaration());
+        expectTokenAndEOLNext(TokenType.STOP, "Expected 'STOP' after code block.");
+
         return statements;
     }
 
-    private Expr assignment() throws Exception {
-        Expr expr = or();
-
-        if (match(TokenType.ASSIGNMENT)) {
-            Token equals = previous();
-            Expr value = assignment();
-
-            if (expr instanceof Expr.Variable) {
-                Token name = ((Expr.Variable) expr).name;
-                return new Expr.Assign(name, value);
-            }
-
-            error(equals, "Invalid assignment target.");
-        }
-
-        return expr;
+    private void expectTokenAndEOLNext(TokenType type, String expectMessage) throws Exception {
+        expectThenNext(type, expectMessage);
+        expectThenNext(TokenType.EOL,
+                String.format("Missing new line after \'%s\'", Token.tokenTypeToLexeme.get(type)));
     }
 
-    private Expr or() throws Exception {
-        Expr expr = and();
+    private Token expectThenNext(TokenType type, String message) throws Exception {
+        if (compareCurrent(type))
+            return next();
 
-        while (match(TokenType.OR)) {
-            Token operator = previous();
-            Expr right = and();
-            expr = new Expr.Logical(expr, operator, right);
-        }
-
-        return expr;
+        throw newError(getCurrent(), message);
     }
 
-    private Expr and() throws Exception {
-        Expr expr = equality();
-
-        while (match(TokenType.AND)) {
-            Token operator = previous();
-            Expr right = equality();
-            expr = new Expr.Logical(expr, operator, right);
-        }
-
-        return expr;
-    }
-
-    private Expr equality() throws Exception {
-        Expr expr = comparison();
-
-        while (match(TokenType.NOT_EQUAL, TokenType.EQUAL)) {
-            Token operator = previous();
-            Expr right = comparison();
-            expr = new Expr.Binary(expr, operator, right);
-        }
-
-        return expr;
-    }
-
-    private boolean match(TokenType... types) {
+    private boolean compareMultipleThenNext(TokenType... types) {
         for (TokenType type : types) {
-            if (check(type)) {
-                advance();
+            if (compareCurrent(type)) {
+                next();
                 return true;
             }
         }
@@ -319,102 +364,31 @@ public class Parser {
         return false;
     }
 
-    private boolean check(TokenType type) {
+    private boolean compareCurrent(TokenType type) {
         if (isAtEnd())
             return false;
-        return peek().type == type;
+        return getCurrent().type == type;
     }
 
-    private Token advance() {
+    private Token next() {
         if (!isAtEnd())
             current++;
-        return previous();
+        return getPrevious();
     }
 
     private boolean isAtEnd() {
-        return peek().type == TokenType.EOF;
+        return getCurrent().type == TokenType.EOF;
     }
 
-    private Token peek() {
+    private Token getCurrent() {
         return tokens.get(current);
     }
 
-    private Token previous() {
+    private Token getPrevious() {
         return tokens.get(current - 1);
     }
 
-    private Expr comparison() throws Exception {
-        Expr expr = term();
-
-        while (match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESSER, TokenType.LESSER_EQUAL)) {
-            Token operator = previous();
-            Expr right = term();
-            expr = new Expr.Binary(expr, operator, right);
-        }
-
-        return expr;
-    }
-
-    private Expr term() throws Exception {
-        Expr expr = factor();
-
-        while (match(TokenType.SUBTRACTION, TokenType.ADDITION, TokenType.AMPERSAND)) {
-            Token operator = previous();
-            Expr right = factor();
-            expr = new Expr.Binary(expr, operator, right);
-        }
-
-        return expr;
-    }
-
-    private Expr factor() throws Exception {
-        Expr expr = unary();
-
-        while (match(TokenType.DIVISION, TokenType.MULTIPLICATION, TokenType.MODULO)) {
-            Token operator = previous();
-            Expr right = unary();
-            expr = new Expr.Binary(expr, operator, right);
-        }
-
-        return expr;
-    }
-
-    private Expr unary() throws Exception {
-        if (match(TokenType.ADDITION, TokenType.SUBTRACTION)) {
-            Token operator = previous();
-            Expr right = unary();
-            return new Expr.Unary(operator, right);
-        }
-
-        return primary();
-    }
-
-    private Expr primary() throws Exception {
-        if (match(TokenType.INT_LIT, TokenType.FLOAT_LIT, TokenType.BOOL_LIT, TokenType.CHAR_LIT, TokenType.STR_LIT)) {
-            return new Expr.Literal(previous().literal);
-        }
-
-        if (match(TokenType.IDENTIFIER)) {
-            return new Expr.Variable(previous());
-        }
-
-        if (match(TokenType.LEFT_PARENTHESIS)) {
-            Expr expr = expression();
-            consume(TokenType.RIGHT_PARENTHESIS, "Expected ')' after expression.");
-            return new Expr.Grouping(expr);
-        }
-
-        throw error(peek(), "Expected expression.");
-    }
-
-    private Token consume(TokenType type, String message) throws Exception {
-        if (check(type))
-            return advance();
-
-        throw error(peek(), message);
-    }
-
-    private Exception error(Token token, String message) {
+    private Exception newError(Token token, String message) {
         String lineCode = getCodeAtLine(token.line);
 
         return new Exception(

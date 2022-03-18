@@ -114,10 +114,8 @@ public class Parser {
         consume(TokenType.COLON, "Expected ':' after 'OUTPUT'.");
         List<Expr.Variable> variables = new ArrayList<Expr.Variable>();
         variables.add(new Expr.Variable(consume(TokenType.IDENTIFIER, "Expected identifier for input")));
-        while (match(TokenType.COMMA)) {
-            variables.add(new Expr.Variable(previous()));
+        while (match(TokenType.COMMA))
             variables.add(new Expr.Variable(consume(TokenType.IDENTIFIER, "Expected identifier for input")));
-        }
         if (check(TokenType.STOP))
             ;
         else

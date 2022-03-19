@@ -29,6 +29,8 @@ public class Lexer {
     public List<Token> run() throws Exception {
         for (int i = 0; i < sourceCode.length(); i++) {
             char current = sourceCode.charAt(i);
+            if (firstInLine && current == '\n')
+                line++;
             if (!firstInLine && current == '\n') {
                 firstInLine = true;
                 tokens.add(new Token(TokenType.EOL, "EOL", null, line++));

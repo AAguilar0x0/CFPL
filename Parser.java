@@ -183,6 +183,9 @@ public class Parser {
                 return new ParsingExpression.Assign(name, value);
             }
             throw newError(equals, "Invalid assignment target.");
+        } else if (compareMultipleThenNext(TokenType.BOOL_LIT, TokenType.CHAR_LIT, TokenType.FLOAT_LIT,
+                TokenType.INT_LIT, TokenType.STR_LIT, TokenType.IDENTIFIER)) {
+            throw newError(getPrevious(), "Missing expression operator.");
         }
 
         return expr;
@@ -256,7 +259,7 @@ public class Parser {
     }
 
     private ParsingExpression parseUnary() throws Exception {
-        if (compareMultipleThenNext(TokenType.ADDITION, TokenType.SUBTRACTION)) {
+        if (compareMultipleThenNext(TokenType.ADDITION, TokenType.SUBTRACTION, TokenType.NOT)) {
             Token operator = getPrevious();
             ParsingExpression right = parseUnary();
             return new ParsingExpression.Unary(operator, right);

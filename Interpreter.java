@@ -14,10 +14,10 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
     public Object logical(ParsingExpression.Logical expr) throws Exception {
         Object left = evaluate(expr.left);
         if (expr.operator.type == TokenType.OR) {
-            if (truthFullness(left))
+            if (toBoolean(left))
                 return left;
         } else {
-            if (!truthFullness(left))
+            if (!toBoolean(left))
                 return left;
         }
 
@@ -28,13 +28,17 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
     public Object unary(ParsingExpression.Unary expr) throws Exception {
         Object right = evaluate(expr.right);
         switch (expr.operator.type) {
+            case NOT:
+                return !toBoolean(right);
             case ADDITION:
+                checkNumberOperand(expr.operator, right);
                 if (right instanceof Double)
                     return (double) right;
                 if (right instanceof Integer)
                     return (int) right;
                 break;
             case SUBTRACTION:
+                checkNumberOperand(expr.operator, right);
                 if (right instanceof Double)
                     return -(double) right;
                 if (right instanceof Integer)
@@ -45,13 +49,11 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
         return null;
     }
 
-    private boolean truthFullness(Object object) {
-        if (object == null)
-            return false;
+    private boolean toBoolean(Object object) throws Exception {
         if (object instanceof Boolean)
             return (boolean) object;
 
-        return true;
+        throw new Exception("Operand must be a boolean.");
     }
 
     @Override
@@ -102,7 +104,7 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
 
     @Override
     public Void ifS(ParsingStatement.If stmt) throws Exception {
-        if (truthFullness(evaluate(stmt.condition)))
+        if (toBoolean(evaluate(stmt.condition)))
             execute(stmt.thenBranch);
         else if (stmt.elseBranch != null)
             execute(stmt.elseBranch);
@@ -151,7 +153,7 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
 
     @Override
     public Void whileS(ParsingStatement.While stmt) throws Exception {
-        while (truthFullness(evaluate(stmt.condition)))
+        while (toBoolean(evaluate(stmt.condition)))
             execute(stmt.body);
 
         return null;
@@ -200,7 +202,6 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
                 return isEqual(left, right);
             case SUBTRACTION:
                 checkNumberOperands(expr.operator, left, right);
-                checkNumberOperand(expr.operator, right);
                 if (left instanceof Double && right instanceof Double)
                     return (double) left - (double) right;
                 if (left instanceof Integer && right instanceof Integer)
@@ -236,7 +237,7 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
     }
 
     private void checkNumberOperand(Token operator, Object operand) throws Exception {
-        if (operand instanceof Double)
+        if (operand instanceof Double || operand instanceof Integer)
             return;
 
         throw new Exception(String.format("Operand must be a number: %s", operand));

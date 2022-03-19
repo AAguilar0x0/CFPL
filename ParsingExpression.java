@@ -6,7 +6,7 @@
 // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 // term           → factor ( ( "-" | "+" | "&" ) factor )* ;
 // factor         → unary ( ( "/" | "*" | "%" ) unary )* ;
-// unary          → ( "+" | "-" ) unary | primary ;
+// unary          → ( "+" | "-" | "NOT" ) unary | primary ;
 // primary        → INT
 //                | FLOAT
 //                | BOOL

@@ -2,7 +2,7 @@
 * [-61]
 * 10
 * 1
-* true
+* false
 VAR xyz, abc=100 AS INT
 START
     xyz= ((abc *5)/10 + 10) * -1

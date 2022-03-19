@@ -1,2 +1,4 @@
-* [Error] - (1) STOP is missing START
+* [Error] 'STOP' is missing 'START'
+* line-number 3 on STOP.
+* STOP
 STOP

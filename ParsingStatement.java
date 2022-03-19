@@ -62,10 +62,11 @@ abstract class ParsingStatement {
   }
 
   static class If extends ParsingStatement {
-    If(ParsingExpression condition, ParsingStatement thenBranch, ParsingStatement elseBranch) {
+    If(ParsingExpression condition, ParsingStatement thenBranch, ParsingStatement elseBranch, Token ifToken) {
       this.condition = condition;
       this.thenBranch = thenBranch;
       this.elseBranch = elseBranch;
+      this.ifToken = ifToken;
     }
 
     @Override
@@ -73,6 +74,7 @@ abstract class ParsingStatement {
       return visitor.ifS(this);
     }
 
+    final Token ifToken;
     final ParsingExpression condition;
     final ParsingStatement thenBranch;
     final ParsingStatement elseBranch;

@@ -12,14 +12,17 @@ interface DFATerminator {
 }
 
 public class Lexer {
+    private CFPL cfpl;
     private String sourceCode;
     private List<Token> tokens = new ArrayList<Token>();
     private Stack<Token> codeBlock = new Stack<Token>();
     private int line = 0;
+    private int column = 0;
     boolean firstInLine = true;
 
-    public Lexer(String sourceCode) {
-        this.sourceCode = sourceCode;
+    public Lexer(CFPL cfpl) {
+        this.cfpl = cfpl;
+        this.sourceCode = cfpl.getSourceCode();
     }
 
     public List<Token> getTokens() {
@@ -27,58 +30,64 @@ public class Lexer {
     }
 
     public List<Token> run() throws Exception {
-        for (int i = 0; i < sourceCode.length(); i++) {
+        for (int i = 0; i < sourceCode.length(); i++, column++) {
             char current = sourceCode.charAt(i);
-            if (firstInLine && current == '\n')
+            if (firstInLine && current == '\n') {
                 line++;
+                column = 0;
+            }
             if (!firstInLine && current == '\n') {
                 firstInLine = true;
-                tokens.add(new Token(TokenType.EOL, "EOL", null, line++));
+                column = 0;
+                tokens.add(new Token(TokenType.EOL, "EOL", null, line++, column));
             }
             if (!Character.isWhitespace(current)) {
                 switch (current) {
                     case '(':
-                        tokens.add(new Token(TokenType.LEFT_PARENTHESIS, Character.toString(current), null, line));
+                        tokens.add(
+                                new Token(TokenType.LEFT_PARENTHESIS, Character.toString(current), null, line, column));
                         break;
                     case ')':
-                        tokens.add(new Token(TokenType.RIGHT_PARENTHESIS, Character.toString(current), null, line));
+                        tokens.add(new Token(TokenType.RIGHT_PARENTHESIS, Character.toString(current), null, line,
+                                column));
                         break;
                     case '[':
-                        tokens.add(new Token(TokenType.LEFT_BRACE, Character.toString(current), null, line));
+                        tokens.add(new Token(TokenType.LEFT_BRACE, Character.toString(current), null, line, column));
                         break;
                     case ']':
-                        tokens.add(new Token(TokenType.RIGHT_BRACE, Character.toString(current), null, line));
+                        tokens.add(new Token(TokenType.RIGHT_BRACE, Character.toString(current), null, line, column));
                         break;
                     case ',':
-                        tokens.add(new Token(TokenType.COMMA, Character.toString(current), null, line));
+                        tokens.add(new Token(TokenType.COMMA, Character.toString(current), null, line, column));
                         break;
                     case ':':
-                        tokens.add(new Token(TokenType.COLON, Character.toString(current), null, line));
+                        tokens.add(new Token(TokenType.COLON, Character.toString(current), null, line, column));
                         break;
                     case '#':
-                        tokens.add(new Token(TokenType.OCTOTHORPE, Character.toString(current), null, line));
+                        tokens.add(new Token(TokenType.OCTOTHORPE, Character.toString(current), null, line, column));
                         break;
                     case '&':
-                        tokens.add(new Token(TokenType.AMPERSAND, Character.toString(current), null, line));
+                        tokens.add(new Token(TokenType.AMPERSAND, Character.toString(current), null, line, column));
                         break;
                     case '+':
-                        tokens.add(new Token(TokenType.ADDITION, Character.toString(current), null, line));
+                        tokens.add(new Token(TokenType.ADDITION, Character.toString(current), null, line, column));
                         break;
                     case '-':
-                        tokens.add(new Token(TokenType.SUBTRACTION, Character.toString(current), null, line));
+                        tokens.add(new Token(TokenType.SUBTRACTION, Character.toString(current), null, line, column));
                         break;
                     case '*':
                         if (firstInLine) {
                             i = comment(i);
                             continue;
                         }
-                        tokens.add(new Token(TokenType.MULTIPLICATION, Character.toString(current), null, line));
+                        tokens.add(
+                                new Token(TokenType.MULTIPLICATION, Character.toString(current), null, line, column));
                         break;
                     case '/':
-                        tokens.add(new Token(TokenType.DIVISION, Character.toString(current), null, line));
+                        tokens.add(new Token(TokenType.DIVISION, Character.toString(current), null, line, column));
                         break;
                     case '%':
-                        tokens.add(new Token(TokenType.MODULO, Character.toString(current), null, line));
+                        tokens.add(new Token(TokenType.MODULO, Character.toString(current), null, line, column));
                         break;
                     case '=':
                         i = assign_equal(i);
@@ -107,14 +116,14 @@ public class Lexer {
                             i = words(i);
                             break;
                         }
-                        throw new Exception("Invalid character: " + current);
+                        throw cfpl.newError(line, Character.toString(current), "Invalid character.");
                 }
                 firstInLine = false;
             }
         }
-        tokens.add(new Token(TokenType.EOF, "EOF", null, line));
+        tokens.add(new Token(TokenType.EOF, "EOF", null, line, column));
         if (!codeBlock.isEmpty())
-            throw new Exception(String.format("START is missing STOP"));
+            throw cfpl.newError(line, "START", String.format("'START' is missing 'STOP'"));
         return tokens;
     }
 
@@ -123,6 +132,7 @@ public class Lexer {
         while (current != '\n')
             current = sourceCode.charAt(++i);
         line++;
+        column = 0;
         firstInLine = true;
         return i;
     }
@@ -131,12 +141,12 @@ public class Lexer {
         ++i;
         char current = sourceCode.charAt(i);
         if (current == '=') {
-            tokens.add(new Token(TokenType.EQUAL, "==", null, line));
+            tokens.add(new Token(TokenType.EQUAL, "==", null, line, column));
             return i;
         }
         --i;
         current = sourceCode.charAt(i);
-        tokens.add(new Token(TokenType.ASSIGNMENT, Character.toString(current), null, line));
+        tokens.add(new Token(TokenType.ASSIGNMENT, Character.toString(current), null, line, column));
         return i;
     }
 
@@ -144,16 +154,16 @@ public class Lexer {
         ++i;
         char current = sourceCode.charAt(i);
         if (current == '=') {
-            tokens.add(new Token(TokenType.LESSER_EQUAL, "<=", null, line));
+            tokens.add(new Token(TokenType.LESSER_EQUAL, "<=", null, line, column));
             return i;
         }
         if (current == '>') {
-            tokens.add(new Token(TokenType.NOT_EQUAL, "<>", null, line));
+            tokens.add(new Token(TokenType.NOT_EQUAL, "<>", null, line, column));
             return i;
         }
         --i;
         current = sourceCode.charAt(i);
-        tokens.add(new Token(TokenType.LESSER, Character.toString(current), null, line));
+        tokens.add(new Token(TokenType.LESSER, Character.toString(current), null, line, column));
         return i;
     }
 
@@ -161,12 +171,12 @@ public class Lexer {
         ++i;
         char current = sourceCode.charAt(i);
         if (current == '=') {
-            tokens.add(new Token(TokenType.GREATER_EQUAL, ">=", null, line));
+            tokens.add(new Token(TokenType.GREATER_EQUAL, ">=", null, line, column));
             return i;
         }
         --i;
         current = sourceCode.charAt(i);
-        tokens.add(new Token(TokenType.GREATER, Character.toString(current), null, line));
+        tokens.add(new Token(TokenType.GREATER, Character.toString(current), null, line, column));
         return i;
     }
 
@@ -174,15 +184,15 @@ public class Lexer {
         i += 2;
         char current = sourceCode.charAt(i);
         if (current != '\'') {
-            throw new Exception(String.format("Invalid char literal: %s", sourceCode.substring(i - 1, i + 1)));
+            throw cfpl.newError(line, sourceCode.substring(i - 1, i + 1), "Invalid char literal.");
         }
         --i;
         current = sourceCode.charAt(i);
         if (current == '\'') {
-            tokens.add(new Token(TokenType.CHAR_LIT, "", '\0', line));
+            tokens.add(new Token(TokenType.CHAR_LIT, "", '\0', line, column));
             return i;
         }
-        tokens.add(new Token(TokenType.CHAR_LIT, Character.toString(current), current, line));
+        tokens.add(new Token(TokenType.CHAR_LIT, Character.toString(current), current, line, column));
         return ++i;
     }
 
@@ -274,10 +284,10 @@ public class Lexer {
         };
         int[] result = evaluateDFA(++i, 0, finalState, deadState, charStateTransitionTable, charToIndex, true);
         if (result[0] == 1)
-            throw new Exception(String.format("Unclosed bool literal: %s", sourceCode.substring(i, result[2])));
+            throw cfpl.newError(line, sourceCode.substring(i, result[2]), "Unclosed bool literal.");
         if (finalState.contains(result[1])) {
             String boolLexeme = sourceCode.substring(i, result[2]);
-            tokens.add(new Token(TokenType.BOOL_LIT, boolLexeme, stringToBool(boolLexeme), line));
+            tokens.add(new Token(TokenType.BOOL_LIT, boolLexeme, stringToBool(boolLexeme), line, column));
             returnIndex = result[2];
         }
         return returnIndex;
@@ -322,9 +332,9 @@ public class Lexer {
         int[] result = evaluateDFA(i, 0, finalState, deadState, charStateTransitionTable, charToIndex, false);
         String res = sourceCode.substring(i, result[2] + 1);
         if (result[0] == 1)
-            throw new Exception(String.format("Unclosed string literal: %s", res));
+            throw cfpl.newError(line, res, "Unclosed string literal.");
         if (deadState.contains(result[1])) {
-            throw new Exception(String.format("Invalid escape: %s", res));
+            throw cfpl.newError(line, res, "Invalid escape.");
         }
         returnIndex = result[2];
         return returnIndex;
@@ -419,7 +429,7 @@ public class Lexer {
             else
                 literal += current;
         }
-        tokens.add(new Token(TokenType.STR_LIT, literal, literal, line));
+        tokens.add(new Token(TokenType.STR_LIT, literal, literal, line, column));
         return i;
     }
 
@@ -457,14 +467,14 @@ public class Lexer {
         int[] result = evaluateDFA(i, 0, finalState, deadState, charStateTransitionTable, charToIndex, true);
         String res = sourceCode.substring(i, result[2] + 1);
         if (result[0] == 1)
-            throw new Exception(String.format("Unclosed code block: %s", res));
+            throw cfpl.newError(line, res, "Unclosed code block.");
         if (deadState.contains(result[1]))
-            throw new Exception(String.format("Invalid number literal: %s", res));
+            throw cfpl.newError(line, res, "Invalid number literal.");
         if (result[1] == 1) {
-            tokens.add(new Token(TokenType.INT_LIT, res, Integer.parseInt(res), line));
+            tokens.add(new Token(TokenType.INT_LIT, res, Integer.parseInt(res), line, column));
             returnIndex = result[2];
         } else if (finalState.contains(result[1])) {
-            tokens.add(new Token(TokenType.FLOAT_LIT, res, Double.parseDouble(res), line));
+            tokens.add(new Token(TokenType.FLOAT_LIT, res, Double.parseDouble(res), line, column));
             returnIndex = result[2];
         }
         return returnIndex;
@@ -503,18 +513,18 @@ public class Lexer {
         int[] result = evaluateDFA(i, 0, finalState, deadState, charStateTransitionTable, charToIndex, true);
         String res = sourceCode.substring(i, result[2] + 1);
         if (result[0] == 1)
-            throw new Exception(String.format("Invalid syntax: %s", res));
+            throw cfpl.newError(line, res, "Invalid syntax.");
         if (finalState.contains(result[1])) {
             Token temp;
             if (Token.reservedWords.containsKey(res)) {
-                temp = new Token(Token.reservedWords.get(res), res, null, line);
+                temp = new Token(Token.reservedWords.get(res), res, null, line, column);
                 switch (temp.type) {
                     case START:
                         codeBlock.push(temp);
                         break;
                     case STOP:
                         if (codeBlock.isEmpty())
-                            throw new Exception(String.format("- (%d) STOP is missing START", line));
+                            throw cfpl.newError(line, "STOP", "'STOP' is missing 'START'");
                         codeBlock.pop();
                         break;
                     default:
@@ -522,7 +532,7 @@ public class Lexer {
                 }
                 tokens.add(temp);
             } else {
-                temp = new Token(TokenType.IDENTIFIER, res, null, line);
+                temp = new Token(TokenType.IDENTIFIER, res, null, line, column);
                 tokens.add(temp);
             }
             returnIndex = result[2];

@@ -2,32 +2,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Parser {
+    CFPL cfpl;
     private List<Token> tokens;
     private int current = 0;
     List<ParsingStatement> statements = new ArrayList<>();
-    String sourceCode;
 
-    public Parser(List<Token> tokens, String sourceCode) {
-        this.tokens = tokens;
-        this.sourceCode = sourceCode;
-    }
-
-    private String getCodeAtLine(int lineNumber) {
-        int start = 0;
-        int end = 0;
-        int line = 0;
-        for (int i = 0; i < sourceCode.length(); i++) {
-            if (sourceCode.charAt(i) == '\n') {
-                if (line > 0)
-                    start = end + 1;
-                end = i;
-                if (line == lineNumber)
-                    break;
-                line++;
-            }
-        }
-
-        return sourceCode.substring(start, end);
+    public Parser(CFPL cfpl) {
+        this.cfpl = cfpl;
     }
 
     private ParsingExpression.Literal getDefaultLiteral(TokenType type) {
@@ -67,7 +48,8 @@ public class Parser {
         }
     }
 
-    List<ParsingStatement> parse() throws Exception {
+    List<ParsingStatement> parse(List<Token> tokens) throws Exception {
+        this.tokens = tokens;
         while (!isAtEnd())
             statements.add(parseDeclaration());
 
@@ -86,9 +68,9 @@ public class Parser {
         if (compareCurrent(TokenType.IDENTIFIER))
             name = expectThenNext(TokenType.IDENTIFIER, "Expected variable name.");
         else if (Token.reservedWords.containsKey(getCurrent().lexeme))
-            throw newError(getCurrent(), "Expected valid variable name but got reserved keyword.");
+            throw cfpl.newError(getCurrent(), "Expected valid variable name but got reserved keyword.");
         else
-            throw newError(getCurrent(), "Expected valid variable name.");
+            throw cfpl.newError(getCurrent(), "Expected valid variable name.");
         TokenType type;
 
         int tempCurrent = current;
@@ -97,7 +79,7 @@ public class Parser {
         if (compareMultipleThenNext(TokenType.BOOL, TokenType.CHAR, TokenType.FLOAT, TokenType.INT))
             type = getPrevious().type;
         else
-            throw newError(name, "Expected declaration variable data type.");
+            throw cfpl.newError(name, "Expected declaration variable data type.");
         current = tempCurrent;
 
         ParsingExpression initializer = null;
@@ -108,7 +90,7 @@ public class Parser {
                 if (type == TokenType.FLOAT && checkType(TokenType.INT, initial.value))
                     initializer = new ParsingExpression.Literal((double) initial.value);
                 else if (!checkType(type, initial.value))
-                    throw newError(name, String.format("Expected %s type.", type));
+                    throw cfpl.newError(name, String.format("Expected %s type.", type));
             }
         } else
             initializer = getDefaultLiteral(type);
@@ -129,7 +111,7 @@ public class Parser {
                     if (type == TokenType.FLOAT && checkType(TokenType.INT, initial.value))
                         initializer = new ParsingExpression.Literal((double) initial.value);
                     else if (!checkType(type, initial.value))
-                        throw newError(name, String.format("Expected %s type.", type));
+                        throw cfpl.newError(name, String.format("Expected %s type.", type));
                 }
             } else
                 initializer = getDefaultLiteral(type);
@@ -138,7 +120,7 @@ public class Parser {
 
         if (expectThenNext(TokenType.AS, "Expected declaration variable data type.") != null
                 && !compareMultipleThenNext(TokenType.BOOL, TokenType.CHAR, TokenType.FLOAT, TokenType.INT))
-            throw newError(name, "Expected declaration variable data type.");
+            throw cfpl.newError(name, "Expected declaration variable data type.");
         expectThenNext(TokenType.EOL, "Expected new line after declaration.");
 
         if (manyDeclaration)
@@ -182,10 +164,10 @@ public class Parser {
                 Token name = ((ParsingExpression.Variable) expr).name;
                 return new ParsingExpression.Assign(name, value);
             }
-            throw newError(equals, "Invalid assignment target.");
+            throw cfpl.newError(equals, "Invalid assignment target.");
         } else if (compareMultipleThenNext(TokenType.BOOL_LIT, TokenType.CHAR_LIT, TokenType.FLOAT_LIT,
                 TokenType.INT_LIT, TokenType.STR_LIT, TokenType.IDENTIFIER)) {
-            throw newError(getPrevious(), "Missing expression operator.");
+            throw cfpl.newError(getPrevious(), "Missing expression operator.");
         }
 
         return expr;
@@ -280,10 +262,11 @@ public class Parser {
             return new ParsingExpression.Grouping(expr);
         }
 
-        throw newError(getCurrent(), "Expected expression.");
+        throw cfpl.newError(getCurrent(), "Expected expression.");
     }
 
     private ParsingStatement parseIf() throws Exception {
+        Token ifToken = getPrevious();
         expectThenNext(TokenType.LEFT_PARENTHESIS, "Expected '(' after 'if'.");
         ParsingExpression condition = parseExpression();
         expectTokenAndEOLNext(TokenType.RIGHT_PARENTHESIS, "Expected ')' after condition.");
@@ -298,7 +281,7 @@ public class Parser {
             expectTokenAndEOLNext(TokenType.STOP, "Expected 'STOP' after code block.");
         }
 
-        return new ParsingStatement.If(condition, thenBranch, elseBranch);
+        return new ParsingStatement.If(condition, thenBranch, elseBranch, ifToken);
     }
 
     private ParsingStatement parseOutput() throws Exception {
@@ -353,7 +336,7 @@ public class Parser {
         if (compareCurrent(type))
             return next();
 
-        throw newError(getCurrent(), message);
+        throw cfpl.newError(getCurrent(), message);
     }
 
     private boolean compareMultipleThenNext(TokenType... types) {
@@ -389,13 +372,5 @@ public class Parser {
 
     private Token getPrevious() {
         return tokens.get(current - 1);
-    }
-
-    private Exception newError(Token token, String message) {
-        String lineCode = getCodeAtLine(token.line);
-
-        return new Exception(
-                String.format("%s\nline-number %d on %s '%s'\n%s", message, token.line, token.type, token.lexeme,
-                        lineCode));
     }
 }

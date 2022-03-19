@@ -24,16 +24,53 @@ public class CFPL {
         }
     }
 
+    public String getSourceCode() {
+        return sourceCode;
+    }
+
+    private String getCodeAtLine(int lineNumber) {
+        int start = 0;
+        int end = 0;
+        int line = 0;
+        for (int i = 0; i < sourceCode.length(); i++) {
+            if (sourceCode.charAt(i) == '\n') {
+                if (line > 0)
+                    start = end + 1;
+                end = i;
+                if (line == lineNumber)
+                    break;
+                line++;
+            }
+        }
+
+        return sourceCode.substring(start, end);
+    }
+
+    public Exception newError(Token token, String message) {
+        String lineCode = getCodeAtLine(token.line);
+
+        return new Exception(
+                String.format("%s\nline-number %d on %s '%s'.\n%s", message, token.line, token.type, token.lexeme,
+                        lineCode));
+    }
+
+    public Exception newError(int line, String atFault, String message) {
+        String lineCode = getCodeAtLine(line);
+
+        return new Exception(
+                String.format("%s\nline-number %d on %s.\n%s", message, line, atFault, lineCode));
+    }
+
     public void execute() throws Exception {
         try {
-            lexer = new Lexer(sourceCode);
+            lexer = new Lexer(this);
             List<Token> tokens = lexer.run();
-            parser = new Parser(tokens, sourceCode);
-            List<ParsingStatement> statements = parser.parse();
-            interpret = new Interpreter();
+            parser = new Parser(this);
+            List<ParsingStatement> statements = parser.parse(tokens);
+            interpret = new Interpreter(this);
             interpret.interpret(statements);
         } catch (Exception e) {
-            System.out.println(String.format("[Error] %s", e.getMessage()));
+            System.out.println(String.format("\n[Error] %s", e.getMessage()));
         }
     }
 

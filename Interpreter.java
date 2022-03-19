@@ -3,7 +3,12 @@ import java.util.Scanner;
 
 class Interpreter implements ParsingExpression.Visitor<Object>,
         ParsingStatement.Visitor<Void> {
+    private CFPL cfpl;
     private Storage global = new Storage();
+
+    public Interpreter(CFPL cfpl) {
+        this.cfpl = cfpl;
+    }
 
     @Override
     public Object literal(ParsingExpression.Literal expr) {
@@ -13,12 +18,16 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
     @Override
     public Object logical(ParsingExpression.Logical expr) throws Exception {
         Object left = evaluate(expr.left);
-        if (expr.operator.type == TokenType.OR) {
-            if (toBoolean(left))
-                return left;
-        } else {
-            if (!toBoolean(left))
-                return left;
+        try {
+            if (expr.operator.type == TokenType.OR) {
+                if (toBoolean(left))
+                    return left;
+            } else {
+                if (!toBoolean(left))
+                    return left;
+            }
+        } catch (Exception e) {
+            throw cfpl.newError(expr.operator, e.getMessage());
         }
 
         return evaluate(expr.right);
@@ -29,7 +38,11 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
         Object right = evaluate(expr.right);
         switch (expr.operator.type) {
             case NOT:
-                return !toBoolean(right);
+                try {
+                    return !toBoolean(right);
+                } catch (Exception e) {
+                    throw cfpl.newError(expr.operator, e.getMessage());
+                }
             case ADDITION:
                 checkNumberOperand(expr.operator, right);
                 if (right instanceof Double)
@@ -104,10 +117,15 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
 
     @Override
     public Void ifS(ParsingStatement.If stmt) throws Exception {
-        if (toBoolean(evaluate(stmt.condition)))
-            execute(stmt.thenBranch);
-        else if (stmt.elseBranch != null)
-            execute(stmt.elseBranch);
+        Object condition = evaluate(stmt.condition);
+        try {
+            if (toBoolean(condition))
+                execute(stmt.thenBranch);
+            else if (stmt.elseBranch != null)
+                execute(stmt.elseBranch);
+        } catch (Exception e) {
+            throw cfpl.newError(stmt.ifToken, e.getMessage());
+        }
 
         return null;
     }
@@ -133,7 +151,7 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
                 global.assign(v.name, (int) scanner.nextInt());
             else {
                 scanner.close();
-                throw new Exception(String.format("Unsupported input data type: %s", v.name.type));
+                throw cfpl.newError(v.name, "Unsupported input data type.");
             }
         }
         scanner.close();
@@ -228,7 +246,7 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
                 if (left instanceof Integer && right instanceof Integer)
                     return (int) left % (int) right;
                 else
-                    throw new Exception(String.format("Operand must be an integer: %s - %s", left, right));
+                    throw cfpl.newError(expr.operator, "Operand must be an integer.");
             case AMPERSAND:
                 return left.toString() + right.toString();
         }
@@ -240,7 +258,7 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
         if (operand instanceof Double || operand instanceof Integer)
             return;
 
-        throw new Exception(String.format("Operand must be a number: %s", operand));
+        throw cfpl.newError(operator, "Operand must be a number.");
     }
 
     private void checkNumberOperands(Token operator,
@@ -248,7 +266,7 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
         if (left instanceof Double && right instanceof Double || left instanceof Integer && right instanceof Integer)
             return;
 
-        throw new Exception(String.format("Operand must be a number: %s - %s", left, right));
+        throw cfpl.newError(operator, "Operand must be a number.");
     }
 
     void interpret(List<ParsingStatement> statements) throws Exception {

@@ -36,21 +36,6 @@ public class Parser {
         return new ParsingExpression.Literal(value);
     }
 
-    private boolean checkType(TokenType expected, Object actual) {
-        switch (expected) {
-            case BOOL:
-                return "java.lang.Boolean".equals(actual.getClass().getName());
-            case CHAR:
-                return "java.lang.Character".equals(actual.getClass().getName());
-            case FLOAT:
-                return "java.lang.Double".equals(actual.getClass().getName());
-            case INT:
-                return "java.lang.Integer".equals(actual.getClass().getName());
-            default:
-                return false;
-        }
-    }
-
     List<ParsingStatement> parse(List<Token> tokens) throws Exception {
         this.tokens = tokens;
         while (!isAtEnd())
@@ -90,10 +75,10 @@ public class Parser {
             initializer = parseExpression();
             if (initializer instanceof ParsingExpression.Literal) {
                 ParsingExpression.Literal initial = (ParsingExpression.Literal) initializer;
-                if (type == TokenType.FLOAT && checkType(TokenType.INT, initial.value))
+                if (type == TokenType.FLOAT && Token.checkType(TokenType.INT, initial.value))
                     initializer = new ParsingExpression.Literal((double) initial.value);
-                else if (!checkType(type, initial.value))
-                    throw cfpl.newError(name, String.format("Expected %s type.", type));
+                else if (!Token.checkType(type, initial.value))
+                    throw cfpl.newError(name, String.format("Expected '%s' type.", type));
             }
         } else
             initializer = getDefaultLiteral(type);
@@ -115,10 +100,10 @@ public class Parser {
                 initializer = parseExpression();
                 if (initializer instanceof ParsingExpression.Literal) {
                     ParsingExpression.Literal initial = (ParsingExpression.Literal) initializer;
-                    if (type == TokenType.FLOAT && checkType(TokenType.INT, initial.value))
+                    if (type == TokenType.FLOAT && Token.checkType(TokenType.INT, initial.value))
                         initializer = new ParsingExpression.Literal((double) initial.value);
-                    else if (!checkType(type, initial.value))
-                        throw cfpl.newError(name, String.format("Expected %s type.", type));
+                    else if (!Token.checkType(type, initial.value))
+                        throw cfpl.newError(name, String.format("Expected '%s' type.", type));
                 }
             } else
                 initializer = getDefaultLiteral(type);
@@ -169,15 +154,15 @@ public class Parser {
             ParsingExpression value = parseAssignment();
             if (expr instanceof ParsingExpression.Variable) {
                 Token name = ((ParsingExpression.Variable) expr).name;
+                TokenType type = variablesType.get(name.lexeme);
                 if (value instanceof ParsingExpression.Literal) {
                     ParsingExpression.Literal initial = (ParsingExpression.Literal) value;
-                    TokenType type = variablesType.get(name.lexeme);
-                    if (type == TokenType.FLOAT && checkType(TokenType.INT, initial.value))
+                    if (type == TokenType.FLOAT && Token.checkType(TokenType.INT, initial.value))
                         value = new ParsingExpression.Literal((double) initial.value);
-                    else if (!checkType(type, initial.value))
-                        throw cfpl.newError(name, String.format("Expected %s type.", type));
+                    else if (!Token.checkType(type, initial.value))
+                        throw cfpl.newError(name, String.format("Expected '%s' type.", type));
                 }
-                return new ParsingExpression.Assign(name, value);
+                return new ParsingExpression.Assign(name, value, type);
             }
             throw cfpl.newError(equals, "Invalid assignment target.");
         } else if (compareMultipleThenNext(TokenType.BOOL_LIT, TokenType.CHAR_LIT, TokenType.FLOAT_LIT,

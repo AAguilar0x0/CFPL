@@ -63,6 +63,21 @@ public class Token {
         }
     };
 
+    public static boolean checkType(TokenType expected, Object actual) {
+        switch (expected) {
+            case BOOL:
+                return "java.lang.Boolean".equals(actual.getClass().getName());
+            case CHAR:
+                return "java.lang.Character".equals(actual.getClass().getName());
+            case FLOAT:
+                return "java.lang.Double".equals(actual.getClass().getName());
+            case INT:
+                return "java.lang.Integer".equals(actual.getClass().getName());
+            default:
+                return false;
+        }
+    }
+
     final TokenType type;
     final String lexeme;
     final Object literal;

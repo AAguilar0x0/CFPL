@@ -183,6 +183,8 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
     @Override
     public Object assign(ParsingExpression.Assign expr) throws Exception {
         Object value = evaluate(expr.value);
+        if (!Token.checkType(expr.type, value))
+            throw cfpl.newError(expr.name, String.format("Expected expression value as '%s'", expr.type));
         global.assign(expr.name, value);
 
         return value;

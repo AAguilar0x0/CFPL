@@ -33,9 +33,10 @@ abstract class ParsingExpression {
   }
 
   static class Assign extends ParsingExpression {
-    Assign(Token name, ParsingExpression value) {
+    Assign(Token name, ParsingExpression value, TokenType type) {
       this.name = name;
       this.value = value;
+      this.type = type;
     }
 
     @Override
@@ -45,6 +46,7 @@ abstract class ParsingExpression {
 
     final Token name;
     final ParsingExpression value;
+    final TokenType type;
   }
 
   static class Binary extends ParsingExpression {

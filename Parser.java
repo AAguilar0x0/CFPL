@@ -1,11 +1,14 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Parser {
     CFPL cfpl;
     private List<Token> tokens;
     private int current = 0;
     List<ParsingStatement> statements = new ArrayList<>();
+    private final Map<String, TokenType> variablesType = new HashMap<String, TokenType>();
 
     public Parser(CFPL cfpl) {
         this.cfpl = cfpl;
@@ -97,8 +100,12 @@ public class Parser {
 
         ParsingStatement.Var returnVar = new ParsingStatement.Var(name, initializer);
 
+        if (!compareCurrent(TokenType.COMMA))
+            variablesType.put(name.lexeme, type);
+
         boolean manyDeclaration = false;
         while (compareMultipleThenNext(TokenType.COMMA)) {
+            variablesType.put(name.lexeme, type);
             if (!manyDeclaration)
                 statements.add(new ParsingStatement.Var(name, initializer));
             manyDeclaration = true;
@@ -162,6 +169,14 @@ public class Parser {
             ParsingExpression value = parseAssignment();
             if (expr instanceof ParsingExpression.Variable) {
                 Token name = ((ParsingExpression.Variable) expr).name;
+                if (value instanceof ParsingExpression.Literal) {
+                    ParsingExpression.Literal initial = (ParsingExpression.Literal) value;
+                    TokenType type = variablesType.get(name.lexeme);
+                    if (type == TokenType.FLOAT && checkType(TokenType.INT, initial.value))
+                        value = new ParsingExpression.Literal((double) initial.value);
+                    else if (!checkType(type, initial.value))
+                        throw cfpl.newError(name, String.format("Expected %s type.", type));
+                }
                 return new ParsingExpression.Assign(name, value);
             }
             throw cfpl.newError(equals, "Invalid assignment target.");

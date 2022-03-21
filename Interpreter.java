@@ -143,13 +143,16 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
         Scanner scanner = new Scanner(System.in);
         for (ParsingExpression.Variable v : stmt.variables) {
             Object value = global.get(v.name);
-            if ("java.lang.Character".equals(value.getClass().getName()))
-                global.assign(v.name, (char) scanner.nextLine().charAt(0));
-            else if ("java.lang.Double".equals(value.getClass().getName()))
-                global.assign(v.name, (double) scanner.nextDouble());
-            else if ("java.lang.Integer".equals(value.getClass().getName()))
-                global.assign(v.name, (int) scanner.nextInt());
-            else {
+            try {
+                if ("java.lang.Character".equals(value.getClass().getName()))
+                    global.assign(v.name, (char) scanner.nextLine().charAt(0));
+                else if ("java.lang.Double".equals(value.getClass().getName()))
+                    global.assign(v.name, (double) scanner.nextDouble());
+                else if ("java.lang.Integer".equals(value.getClass().getName()))
+                    global.assign(v.name, (int) scanner.nextInt());
+                else
+                    throw new Exception();
+            } catch (Exception e) {
                 scanner.close();
                 throw cfpl.newError(v.name, "Unsupported input data type.");
             }

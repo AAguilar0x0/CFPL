@@ -89,7 +89,7 @@ public class Parser {
             if (!variablesType.containsKey(name.lexeme))
                 variablesType.put(name.lexeme, type);
             else
-                throw cfpl.newError(name, String.format("Variable name '%s' is already declared", name.lexeme));
+                throw cfpl.newError(name, String.format("Variable name '%s' is already declared.", name.lexeme));
         }
 
         boolean manyDeclaration = false;
@@ -97,7 +97,7 @@ public class Parser {
             if (!variablesType.containsKey(name.lexeme))
                 variablesType.put(name.lexeme, type);
             else
-                throw cfpl.newError(name, String.format("Variable name '%s' is already declared", name.lexeme));
+                throw cfpl.newError(name, String.format("Variable name '%s' is already declared.", name.lexeme));
             if (!manyDeclaration)
                 statements.add(new ParsingStatement.Var(name, initializer));
             manyDeclaration = true;
@@ -161,7 +161,11 @@ public class Parser {
             ParsingExpression value = parseAssignment();
             if (expr instanceof ParsingExpression.Variable) {
                 Token name = ((ParsingExpression.Variable) expr).name;
-                TokenType type = variablesType.get(name.lexeme);
+                TokenType type;
+                if (variablesType.containsKey(name.lexeme))
+                    type = variablesType.get(name.lexeme);
+                else
+                    throw cfpl.newError(name, String.format("Undefined variable '%s'.", name.lexeme));
                 if (value instanceof ParsingExpression.Literal) {
                     ParsingExpression.Literal initial = (ParsingExpression.Literal) value;
                     if (type == TokenType.FLOAT && Token.checkType(TokenType.INT, initial.value))

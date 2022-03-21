@@ -85,12 +85,19 @@ public class Parser {
 
         ParsingStatement.Var returnVar = new ParsingStatement.Var(name, initializer);
 
-        if (!compareCurrent(TokenType.COMMA))
-            variablesType.put(name.lexeme, type);
+        if (!compareCurrent(TokenType.COMMA)) {
+            if (!variablesType.containsKey(name.lexeme))
+                variablesType.put(name.lexeme, type);
+            else
+                throw cfpl.newError(name, String.format("Variable name '%s' is already declared", name.lexeme));
+        }
 
         boolean manyDeclaration = false;
         while (compareMultipleThenNext(TokenType.COMMA)) {
-            variablesType.put(name.lexeme, type);
+            if (!variablesType.containsKey(name.lexeme))
+                variablesType.put(name.lexeme, type);
+            else
+                throw cfpl.newError(name, String.format("Variable name '%s' is already declared", name.lexeme));
             if (!manyDeclaration)
                 statements.add(new ParsingStatement.Var(name, initializer));
             manyDeclaration = true;

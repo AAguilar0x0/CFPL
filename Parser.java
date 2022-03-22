@@ -85,22 +85,17 @@ public class Parser {
 
         ParsingStatement.Var returnVar = new ParsingStatement.Var(name, initializer);
 
-        if (!compareCurrent(TokenType.COMMA)) {
-            if (!variablesType.containsKey(name.lexeme))
-                variablesType.put(name.lexeme, type);
-            else
-                throw cfpl.newError(name, String.format("Variable name '%s' is already declared.", name.lexeme));
-        }
+        if (!variablesType.containsKey(name.lexeme))
+            variablesType.put(name.lexeme, type);
+        else
+            throw cfpl.newError(name, String.format("Variable name '%s' is already declared.", name.lexeme));
 
         boolean manyDeclaration = false;
         while (compareMultipleThenNext(TokenType.COMMA)) {
-            if (!variablesType.containsKey(name.lexeme))
-                variablesType.put(name.lexeme, type);
-            else
-                throw cfpl.newError(name, String.format("Variable name '%s' is already declared.", name.lexeme));
-            if (!manyDeclaration)
+            if (!manyDeclaration) {
+                manyDeclaration = true;
                 statements.add(new ParsingStatement.Var(name, initializer));
-            manyDeclaration = true;
+            }
             name = expectThenNext(TokenType.IDENTIFIER, "Expected variable name.");
             initializer = null;
             if (compareMultipleThenNext(TokenType.ASSIGNMENT)) {
@@ -114,6 +109,10 @@ public class Parser {
                 }
             } else
                 initializer = getDefaultLiteral(type);
+            if (!variablesType.containsKey(name.lexeme))
+                variablesType.put(name.lexeme, type);
+            else
+                throw cfpl.newError(name, String.format("Variable name '%s' is already declared.", name.lexeme));
             statements.add(new ParsingStatement.Var(name, initializer));
         }
 

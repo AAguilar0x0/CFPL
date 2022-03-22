@@ -280,15 +280,13 @@ public class Parser {
         expectThenNext(TokenType.LEFT_PARENTHESIS, "Expected '(' after 'if'.");
         ParsingExpression condition = parseExpression();
         expectTokenAndEOLNext(TokenType.RIGHT_PARENTHESIS, "Expected ')' after condition.");
-        expectTokenAndEOLNext(TokenType.START, "Expected 'START' before code block.");
+        expectTokenAndEOL(TokenType.START, "Expected 'START' before code block.");
         ParsingStatement thenBranch = parseStatement();
         ParsingStatement elseBranch = null;
-        expectTokenAndEOLNext(TokenType.STOP, "Expected 'STOP' after code block.");
         if (compareMultipleThenNext(TokenType.ELSE)) {
             expectThenNext(TokenType.EOL, "Expected new line after if 'ELSE'.");
-            expectTokenAndEOLNext(TokenType.START, "Expected 'START' before code block.");
+            expectTokenAndEOL(TokenType.START, "Expected 'START' before code block.");
             elseBranch = parseStatement();
-            expectTokenAndEOLNext(TokenType.STOP, "Expected 'STOP' after code block.");
         }
 
         return new ParsingStatement.If(condition, thenBranch, elseBranch, ifToken);
@@ -319,9 +317,8 @@ public class Parser {
         expectThenNext(TokenType.LEFT_PARENTHESIS, "Expected '(' after 'while'.");
         ParsingExpression condition = parseExpression();
         expectTokenAndEOLNext(TokenType.RIGHT_PARENTHESIS, "Expected ')' after condition.");
-        expectTokenAndEOLNext(TokenType.START, "Expected 'START' before code block.");
+        expectTokenAndEOL(TokenType.START, "Expected 'START' before code block.");
         ParsingStatement body = parseStatement();
-        expectTokenAndEOLNext(TokenType.STOP, "Expected 'STOP' after code block.");
 
         return new ParsingStatement.While(condition, body);
     }
@@ -340,6 +337,12 @@ public class Parser {
         expectThenNext(type, expectMessage);
         expectThenNext(TokenType.EOL,
                 String.format("Missing new line after \'%s\'", Token.tokenTypeToLexeme.get(type)));
+    }
+
+    private void expectTokenAndEOL(TokenType type, String expectMessage) throws Exception {
+        int tempCurrent = current;
+        expectTokenAndEOLNext(type, expectMessage);
+        current = tempCurrent;
     }
 
     private Token expectThenNext(TokenType type, String message) throws Exception {

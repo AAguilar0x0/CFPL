@@ -201,24 +201,40 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
                     return (double) left > (double) right;
                 if (left instanceof Integer && right instanceof Integer)
                     return (int) left > (int) right;
+                if (left instanceof Double && right instanceof Integer)
+                    return (double) left > (int) right;
+                if (left instanceof Integer && right instanceof Double)
+                    return (int) left > (double) right;
             case GREATER_EQUAL:
                 checkNumberOperands(expr.operator, left, right);
                 if (left instanceof Double && right instanceof Double)
                     return (double) left >= (double) right;
                 if (left instanceof Integer && right instanceof Integer)
                     return (int) left >= (int) right;
+                if (left instanceof Double && right instanceof Integer)
+                    return (double) left >= (int) right;
+                if (left instanceof Integer && right instanceof Double)
+                    return (int) left >= (double) right;
             case LESSER:
                 checkNumberOperands(expr.operator, left, right);
                 if (left instanceof Double && right instanceof Double)
                     return (double) left < (double) right;
                 if (left instanceof Integer && right instanceof Integer)
                     return (int) left < (int) right;
+                if (left instanceof Double && right instanceof Integer)
+                    return (double) left < (int) right;
+                if (left instanceof Integer && right instanceof Double)
+                    return (int) left < (double) right;
             case LESSER_EQUAL:
                 checkNumberOperands(expr.operator, left, right);
                 if (left instanceof Double && right instanceof Double)
                     return (double) left <= (double) right;
                 if (left instanceof Integer && right instanceof Integer)
                     return (int) left <= (int) right;
+                if (left instanceof Double && right instanceof Integer)
+                    return (double) left <= (int) right;
+                if (left instanceof Integer && right instanceof Double)
+                    return (int) left <= (double) right;
             case NOT_EQUAL:
                 return !isEqual(left, right);
             case EQUAL:
@@ -229,24 +245,40 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
                     return (double) left - (double) right;
                 if (left instanceof Integer && right instanceof Integer)
                     return (int) left - (int) right;
+                if (left instanceof Double && right instanceof Integer)
+                    return (double) left - (int) right;
+                if (left instanceof Integer && right instanceof Double)
+                    return (int) left - (double) right;
             case ADDITION:
                 checkNumberOperands(expr.operator, left, right);
                 if (left instanceof Double && right instanceof Double)
                     return (double) left + (double) right;
                 if (left instanceof Integer && right instanceof Integer)
                     return (int) left + (int) right;
+                if (left instanceof Double && right instanceof Integer)
+                    return (double) left + (int) right;
+                if (left instanceof Integer && right instanceof Double)
+                    return (int) left + (double) right;
             case DIVISION:
                 checkNumberOperands(expr.operator, left, right);
                 if (left instanceof Double && right instanceof Double)
                     return (double) left / (double) right;
                 if (left instanceof Integer && right instanceof Integer)
                     return (int) left / (int) right;
+                if (left instanceof Double && right instanceof Integer)
+                    return (double) left / (int) right;
+                if (left instanceof Integer && right instanceof Double)
+                    return (int) left / (double) right;
             case MULTIPLICATION:
                 checkNumberOperands(expr.operator, left, right);
                 if (left instanceof Double && right instanceof Double)
                     return (double) left * (double) right;
                 if (left instanceof Integer && right instanceof Integer)
                     return (int) left * (int) right;
+                if (left instanceof Double && right instanceof Integer)
+                    return (double) left * (int) right;
+                if (left instanceof Integer && right instanceof Double)
+                    return (int) left * (double) right;
             case MODULO:
                 if (left instanceof Integer && right instanceof Integer)
                     return (int) left % (int) right;
@@ -268,7 +300,8 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
 
     private void checkNumberOperands(Token operator,
             Object left, Object right) throws Exception {
-        if (left instanceof Double && right instanceof Double || left instanceof Integer && right instanceof Integer)
+        if ((left instanceof Double || left instanceof Integer)
+                && (right instanceof Double || right instanceof Integer))
             return;
 
         throw cfpl.newError(operator, "Operand must be a number.");

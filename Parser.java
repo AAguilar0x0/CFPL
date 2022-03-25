@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Parser {
+    boolean varDeclarations = true;
     CFPL cfpl;
     private List<Token> tokens;
     private int current = 0;
@@ -52,6 +53,8 @@ public class Parser {
     }
 
     private ParsingStatement parseVariableDeclaration() throws Exception {
+        if (!varDeclarations)
+            throw cfpl.newError(getPrevious(), "Misplaced variable declaration.");
         Token name;
         if (compareCurrent(TokenType.IDENTIFIER))
             name = expectThenNext(TokenType.IDENTIFIER, "Expected variable name.");
@@ -324,6 +327,7 @@ public class Parser {
     }
 
     private List<ParsingStatement> parseBlock() throws Exception {
+        varDeclarations = false;
         List<ParsingStatement> statements = new ArrayList<>();
         expectThenNext(TokenType.EOL, "Missing new line after START");
         while (!compareCurrent(TokenType.STOP) && !isAtEnd())

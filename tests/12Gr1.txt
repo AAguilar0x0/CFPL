@@ -1,0 +1,4 @@
+VAR abc, b, c AS INT
+START
+VAR t=”TRUE” AS BOOL
+STOP

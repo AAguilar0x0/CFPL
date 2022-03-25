@@ -98,9 +98,12 @@ public class Lexer {
                     case '>':
                         i = greater_equal(i);
                         break;
+                    case '’':
                     case '\'':
                         i = character_literal(i);
                         break;
+                    case '“':
+                    case '”':
                     case '\"':
                         int index = bool_literal(i);
                         if (index == i)
@@ -183,12 +186,12 @@ public class Lexer {
     private int character_literal(int i) throws Exception {
         i += 2;
         char current = sourceCode.charAt(i);
-        if (current != '\'') {
+        if (current != '\'' && current != '’') {
             throw cfpl.newError(line, sourceCode.substring(i - 1, i + 1), "Invalid char literal.");
         }
         --i;
         current = sourceCode.charAt(i);
-        if (current == '\'') {
+        if (current == '\'' || current == '’') {
             tokens.add(new Token(TokenType.CHAR_LIT, "", '\0', line, column));
             return i;
         }
@@ -274,6 +277,8 @@ public class Lexer {
                 case 'U':
                     translated = 7;
                     break;
+                case '“':
+                case '”':
                 case '\"':
                     translated = 8;
                     break;
@@ -417,7 +422,7 @@ public class Lexer {
         String literal = "";
         for (++i; i < sourceCode.length(); i++) {
             char current = sourceCode.charAt(i);
-            if (current == '\"')
+            if (current == '\"' || current == '“' || current == '”')
                 break;
             if (current == '[' || current == ']') {
                 i = escape(i);

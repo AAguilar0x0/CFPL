@@ -141,6 +141,7 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
     @Override
     public Void input(ParsingStatement.Input stmt) throws Exception {
         Scanner scanner = new Scanner(System.in);
+        int x = 0;
         for (ParsingExpression.Variable v : stmt.variables) {
             Object value = global.get(v.name);
             try {
@@ -150,12 +151,21 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
                     global.assign(v.name, (double) scanner.nextDouble());
                 else if ("java.lang.Integer".equals(value.getClass().getName()))
                     global.assign(v.name, (int) scanner.nextInt());
-                else
+                else if ("java.lang.Boolean".equals(value.getClass().getName())) {
+                    if (x > 0)
+                        scanner.nextLine();
+                    String input = scanner.nextLine();
+                    boolean belongs = input.equals("TRUE") || input.equals("FALSE");
+                    if (!belongs)
+                        throw new Exception();
+                    global.assign(v.name, belongs && input.equals("TRUE") ? true : false);
+                } else
                     throw new Exception();
             } catch (Exception e) {
                 scanner.close();
                 throw cfpl.newError(v.name, "Unsupported input data type.");
             }
+            x++;
         }
         scanner.close();
 

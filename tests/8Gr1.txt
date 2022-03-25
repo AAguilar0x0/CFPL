@@ -1,0 +1,6 @@
+VAR a AS INT
+VAR b AS BOOL
+START
+INPUT: a,b
+OUTPUT: a & "#" & b
+STOP

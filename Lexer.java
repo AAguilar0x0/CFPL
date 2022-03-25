@@ -98,21 +98,18 @@ public class Lexer {
                     case '>':
                         i = greater_equal(i);
                         break;
-                    case '\u2019':
-                    case '\'':
-                        i = character_literal(i);
-                        break;
-                    case '\u201C':
-                    case '\u201D':
-                    case '\"':
-                        int index = bool_literal(i);
-                        if (index == i)
-                            i = string_literal(i);
-                        else
-                            i = index;
-                        break;
                     default:
-                        if (current == '.' || Character.isDigit(current)) {
+                        if (Quotation.equalsSingleQuote(current)) {
+                            i = character_literal(i);
+                            break;
+                        } else if (Quotation.equalsDoubleQuote(current)) {
+                            int index = bool_literal(i);
+                            if (index == i)
+                                i = string_literal(i);
+                            else
+                                i = index;
+                            break;
+                        } else if (current == '.' || Character.isDigit(current)) {
                             i = number_literal(i);
                             break;
                         } else if (current == '_' || current == '$' || Character.isAlphabetic(current)) {
@@ -184,17 +181,18 @@ public class Lexer {
     }
 
     private int character_literal(int i) throws Exception {
-        i += 2;
+        ++i;
         char current = sourceCode.charAt(i);
-        if (current != '\'' && current != '\u2019') {
-            throw cfpl.newError(line, sourceCode.substring(i - 1, i + 1), "Invalid char literal.");
-        }
-        --i;
-        current = sourceCode.charAt(i);
-        if (current == '\'' || current == '\u2019') {
+        if (Quotation.equalsSingleQuote(current)) {
             tokens.add(new Token(TokenType.CHAR_LIT, "", '\0', line, column));
             return i;
         }
+        ++i;
+        current = sourceCode.charAt(i);
+        if (!Quotation.equalsSingleQuote(current))
+            throw cfpl.newError(line, sourceCode.substring(i - 1, i + 1), "Invalid char literal.");
+        --i;
+        current = sourceCode.charAt(i);
         tokens.add(new Token(TokenType.CHAR_LIT, Character.toString(current), current, line, column));
         return ++i;
     }
@@ -277,12 +275,11 @@ public class Lexer {
                 case 'U':
                     translated = 7;
                     break;
-                case '\u201C':
-                case '\u201D':
-                case '\"':
-                    translated = 8;
-                    break;
                 default:
+                    if (Quotation.equalsDoubleQuote(character)) {
+                        translated = 8;
+                        break;
+                    }
                     translated = -1;
             }
             return translated;
@@ -422,7 +419,7 @@ public class Lexer {
         String literal = "";
         for (++i; i < sourceCode.length(); i++) {
             char current = sourceCode.charAt(i);
-            if (current == '\"' || current == '\u201C' || current == '\u201D')
+            if (Quotation.equalsDoubleQuote(current))
                 break;
             if (current == '[' || current == ']') {
                 i = escape(i);

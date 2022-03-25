@@ -1,3 +1,6 @@
+* 5
+* hi
+* y&
 VAR abc, c AS INT
 VAR x, w_23=’w’ AS CHAR
 VAR t=”TRUE” AS BOOL

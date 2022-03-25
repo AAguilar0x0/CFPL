@@ -1,3 +1,6 @@
+* [Error] Misplaced variable declaration.
+* line-number 2 on VAR 'VAR'.
+* VAR t=”TRUE” AS BOOL
 VAR abc, b, c AS INT
 START
 VAR t=”TRUE” AS BOOL

@@ -1,3 +1,4 @@
+* [7]
 VAR a = 7 AS INT
 START
 OUTPUT: "[[]" & a & "[]]"

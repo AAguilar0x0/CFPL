@@ -1,7 +1,3 @@
 .DS_Store
 *.class
-*.sh
-*.ps1
-*.cmd
-*.bat
 /tools

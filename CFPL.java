@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class CFPL {
@@ -13,7 +14,7 @@ public class CFPL {
         File file = new File(filePath);
         sourceCode = "";
         try {
-            BufferedReader br = new BufferedReader(new FileReader(file));
+            BufferedReader br = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8));
             String temp = "";
             while ((temp = br.readLine()) != null) {
                 sourceCode += temp + "\n";

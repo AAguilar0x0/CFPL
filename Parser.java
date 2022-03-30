@@ -5,6 +5,9 @@ import java.util.Map;
 
 public class Parser {
     boolean varDeclarations = true;
+    boolean isDeclaring = false;
+    boolean inScope = false;
+    int scopeCounter = 0;
     CFPL cfpl;
     private List<Token> tokens;
     private int current = 0;
@@ -53,6 +56,8 @@ public class Parser {
     }
 
     private ParsingStatement parseVariableDeclaration() throws Exception {
+        if (!isDeclaring)
+            isDeclaring = true;
         if (!varDeclarations)
             throw cfpl.newError(getPrevious(), "Misplaced variable declaration.");
         Token name;
@@ -123,6 +128,8 @@ public class Parser {
                 && !compareMultipleThenNext(TokenType.BOOL, TokenType.CHAR, TokenType.FLOAT, TokenType.INT))
             throw cfpl.newError(name, "Expected declaration variable data type.");
         expectThenNext(TokenType.EOL, "Expected new line after declaration.");
+        if (isDeclaring)
+            isDeclaring = false;
 
         if (manyDeclaration)
             returnVar = (ParsingStatement.Var) statements.remove(statements.size() - 1);
@@ -131,6 +138,10 @@ public class Parser {
     }
 
     private ParsingStatement parseStatement() throws Exception {
+        if (compareMultipleThenNext(TokenType.START))
+            return new ParsingStatement.Block(parseBlock());
+        if (!varDeclarations && !inScope)
+            throw cfpl.newError(getCurrent(), "Statement is out of scope.");
         if (compareMultipleThenNext(TokenType.IF))
             return parseIf();
         if (compareMultipleThenNext(TokenType.OUTPUT))
@@ -139,13 +150,13 @@ public class Parser {
             return parseInput();
         if (compareMultipleThenNext(TokenType.WHILE))
             return parseWhile();
-        if (compareMultipleThenNext(TokenType.START))
-            return new ParsingStatement.Block(parseBlock());
 
         return parseExpressionStatement();
     }
 
     private ParsingStatement parseExpressionStatement() throws Exception {
+        if (!inScope && !isDeclaring)
+            throw cfpl.newError(getCurrent(), "Out of scope expression is only allowed in variable declaration.");
         ParsingExpression expr = parseExpression();
         expectThenNext(TokenType.EOL, "Expected new line after expression.");
 
@@ -327,12 +338,22 @@ public class Parser {
     }
 
     private List<ParsingStatement> parseBlock() throws Exception {
-        varDeclarations = false;
+        if (!inScope && scopeCounter > 0)
+            throw cfpl.newError(getPrevious(), "Multiple scope is in invalid.");
+        boolean isScope = false;
+        if (varDeclarations && !inScope) {
+            isScope = true;
+            inScope = true;
+            scopeCounter++;
+            varDeclarations = false;
+        }
         List<ParsingStatement> statements = new ArrayList<>();
         expectThenNext(TokenType.EOL, "Missing new line after START");
         while (!compareCurrent(TokenType.STOP) && !isAtEnd())
             statements.add(parseDeclaration());
         expectTokenAndEOLNext(TokenType.STOP, "Expected 'STOP' after code block.");
+        if (isScope)
+            inScope = false;
 
         return statements;
     }

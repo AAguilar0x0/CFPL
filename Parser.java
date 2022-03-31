@@ -140,7 +140,7 @@ public class Parser {
     private ParsingStatement parseStatement() throws Exception {
         if (compareMultipleThenNext(TokenType.START))
             return new ParsingStatement.Block(parseBlock());
-        if (!varDeclarations && !inScope)
+        if (!inScope)
             throw cfpl.newError(getCurrent(), "Statement is out of scope.");
         if (compareMultipleThenNext(TokenType.IF))
             return parseIf();

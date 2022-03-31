@@ -4,21 +4,13 @@ import java.util.Set;
 
 public abstract class Quotation {
     public static final char SINGLE0 = '\'';
-    // '
     public static final char SINGLE1 = '\u2018';
-    // ‘
     public static final char SINGLE2 = '\u2019';
-    // ’
     public static final char SINGLE3 = '\u201B';
-    // ‛
     public static final char DOUBLE0 = '\"';
-    // "
     public static final char DOUBLE1 = '\u201C';
-    // “
     public static final char DOUBLE2 = '\u201D';
-    // ”
     public static final char DOUBLE3 = '\u201F';
-    // ‟
 
     private static final Set<Character> singleQuotations = new HashSet<Character>();
     private static final Set<Character> doubleQuotations = new HashSet<Character>();

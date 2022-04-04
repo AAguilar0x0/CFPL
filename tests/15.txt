@@ -1,0 +1,4 @@
+* 30
+START
+OUTPUT: (4 + (5 * 6) - 8/2)
+STOP

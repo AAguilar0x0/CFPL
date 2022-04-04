@@ -1,0 +1,4 @@
+VAR c = '[']' AS CHAR
+START
+OUTPUT: c
+STOP

@@ -1,0 +1,6 @@
+* 7
+VAR x = -7, y AS INT
+START
+y = -x
+OUTPUT: y
+STOP

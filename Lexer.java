@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
@@ -186,6 +187,14 @@ public class Lexer {
         if (Quotation.equalsSingleQuote(current)) {
             tokens.add(new Token(TokenType.CHAR_LIT, "", '\0', line, column));
             return i;
+        }
+        int[] SCResult = special_characters(i);
+        if (SCResult[0] != -1) {
+            if (SCResult[0] == 1)
+                i = SCResult[1];
+            current = (char) SCResult[2];
+            tokens.add(new Token(TokenType.CHAR_LIT, Character.toString(current), current, line, column));
+            return ++i;
         }
         ++i;
         current = sourceCode.charAt(i);
@@ -407,6 +416,8 @@ public class Lexer {
                         sb.append(Character.toChars(code));
                         i += 5;
                         continue;
+                    default:
+                        ch = nextChar;
                 }
                 i++;
             }
@@ -415,20 +426,48 @@ public class Lexer {
         return sb.toString();
     }
 
+    private int[] special_characters(int i) throws Exception {
+        int[] result = new int[3];
+        Arrays.fill(result, -1);
+        char current = sourceCode.charAt(i);
+        if (current == '[' || current == ']') {
+            i = escape(i);
+            result[0] = 1;
+            result[1] = i;
+            result[2] = sourceCode.charAt(i - 1);
+        } else if (current == '#') {
+            if (!Quotation.equalsSingleQuote(sourceCode.charAt(i + 1))
+                    && !Quotation.equalsDoubleQuote(sourceCode.charAt(i + 1)))
+                throw cfpl.newError(line, sourceCode.substring(i, i + 1), "Invalid char literal.");
+            result[0] = 0;
+            result[2] = '\n';
+        } else if (current == '\\') {
+            if (sourceCode.charAt(++i) == 'n')
+                throw cfpl.newError(line, sourceCode.substring(i - 1, i + 1), "Invalid new line char literal.");
+            current = unescapeJavaString(String.format("\\%c", sourceCode.charAt(i))).charAt(0);
+            if (!Quotation.equalsSingleQuote(sourceCode.charAt(i + 1))
+                    && !Quotation.equalsDoubleQuote(sourceCode.charAt(i + 1)))
+                throw cfpl.newError(line, sourceCode.substring(i - 1, i + 2), "Invalid char literal.");
+            result[0] = 1;
+            result[1] = i;
+            result[2] = current;
+        }
+        return result;
+    }
+
     private int string_literal(int i) throws Exception {
         String literal = "";
+        int[] SCResult;
         for (++i; i < sourceCode.length(); i++) {
             char current = sourceCode.charAt(i);
             if (Quotation.equalsDoubleQuote(current))
                 break;
-            if (current == '[' || current == ']') {
-                i = escape(i);
-                literal += String.format("%c", sourceCode.charAt(i - 1));
-            } else if (current == '#')
-                literal += "\n";
-            else if (current == '\\')
-                literal += unescapeJavaString(String.format("\\%c", sourceCode.charAt(++i)));
-            else
+            SCResult = special_characters(i);
+            if (SCResult[0] != -1) {
+                if (SCResult[0] == 1)
+                    i = SCResult[1];
+                literal += Character.toString(SCResult[2]);
+            } else
                 literal += current;
         }
         tokens.add(new Token(TokenType.STR_LIT, literal, literal, line, column));

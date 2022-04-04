@@ -1,0 +1,6 @@
+* FALSE
+VAR flag AS BOOL
+START
+flag="TRUE"
+OUTPUT: (flag AND ("FALSE" AND "TRUE"))
+STOP

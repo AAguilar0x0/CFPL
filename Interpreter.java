@@ -295,7 +295,7 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
                 else
                     throw cfpl.newError(expr.operator, "Operand must be an integer.");
             case AMPERSAND:
-                return left.toString() + right.toString();
+                return stringify(left) + stringify(right);
         }
 
         return null;
@@ -325,6 +325,8 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
     private String stringify(Object object) {
         if (object == null)
             return "null";
+        if ("java.lang.Boolean".equals(object.getClass().getName()))
+            return object.toString().toUpperCase();
 
         return object.toString();
     }

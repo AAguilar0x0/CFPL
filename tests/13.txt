@@ -1,0 +1,4 @@
+* TRUE
+START
+OUTPUT: (6>2 OR 5<>5)
+STOP

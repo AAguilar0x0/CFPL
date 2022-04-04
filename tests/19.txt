@@ -1,0 +1,13 @@
+* 1
+* 2
+* 3
+* 4
+* 
+VAR x=1 AS INT
+START
+WHILE (x<5)
+START
+OUTPUT: x & "#"
+x = x + 1
+STOP
+STOP

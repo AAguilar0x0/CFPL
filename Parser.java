@@ -6,6 +6,7 @@ import java.util.Map;
 public class Parser {
     boolean varDeclarations = true;
     boolean isDeclaring = false;
+    boolean inControlStructure = false;
     boolean inScope = false;
     int scopeCounter = 0;
     CFPL cfpl;
@@ -295,6 +296,7 @@ public class Parser {
         ParsingExpression condition = parseExpression();
         expectTokenAndEOLNext(TokenType.RIGHT_PARENTHESIS, "Expected ')' after condition.");
         expectTokenAndEOL(TokenType.START, "Expected 'START' before code block.");
+        inControlStructure = true;
         ParsingStatement thenBranch = parseStatement();
         ParsingStatement elseBranch = null;
         if (compareMultipleThenNext(TokenType.ELSE)) {
@@ -302,6 +304,7 @@ public class Parser {
             expectTokenAndEOL(TokenType.START, "Expected 'START' before code block.");
             elseBranch = parseStatement();
         }
+        inControlStructure = false;
 
         return new ParsingStatement.If(condition, thenBranch, elseBranch, ifToken);
     }
@@ -332,14 +335,18 @@ public class Parser {
         ParsingExpression condition = parseExpression();
         expectTokenAndEOLNext(TokenType.RIGHT_PARENTHESIS, "Expected ')' after condition.");
         expectTokenAndEOL(TokenType.START, "Expected 'START' before code block.");
+        inControlStructure = true;
         ParsingStatement body = parseStatement();
+        inControlStructure = false;
 
         return new ParsingStatement.While(condition, body);
     }
 
     private List<ParsingStatement> parseBlock() throws Exception {
+        if (inScope && !inControlStructure)
+            throw cfpl.newError(getPrevious(), "Nested scope is invalid.");
         if (!inScope && scopeCounter > 0)
-            throw cfpl.newError(getPrevious(), "Multiple scope is in invalid.");
+            throw cfpl.newError(getPrevious(), "Multiple scope is invalid.");
         boolean isScope = false;
         if (varDeclarations && !inScope) {
             isScope = true;

@@ -82,13 +82,9 @@ public class Parser {
         ParsingExpression initializer = null;
         if (compareMultipleThenNext(TokenType.ASSIGNMENT)) {
             initializer = parseExpression();
-            if (initializer instanceof ParsingExpression.Literal) {
-                ParsingExpression.Literal initial = (ParsingExpression.Literal) initializer;
-                if (type == TokenType.FLOAT && Token.checkType(TokenType.INT, initial.value))
-                    initializer = new ParsingExpression.Literal((double) initial.value);
-                else if (!Token.checkType(type, initial.value))
-                    throw cfpl.newError(name, String.format("Expected '%s' type.", type));
-            }
+            if (initializer instanceof ParsingExpression.Literal
+                    && !Token.checkType(type, ((ParsingExpression.Literal) initializer).value))
+                throw cfpl.newError(name, String.format("Expected '%s' type.", type));
         } else
             initializer = getDefaultLiteral(type);
 
@@ -109,13 +105,9 @@ public class Parser {
             initializer = null;
             if (compareMultipleThenNext(TokenType.ASSIGNMENT)) {
                 initializer = parseExpression();
-                if (initializer instanceof ParsingExpression.Literal) {
-                    ParsingExpression.Literal initial = (ParsingExpression.Literal) initializer;
-                    if (type == TokenType.FLOAT && Token.checkType(TokenType.INT, initial.value))
-                        initializer = new ParsingExpression.Literal((double) initial.value);
-                    else if (!Token.checkType(type, initial.value))
-                        throw cfpl.newError(name, String.format("Expected '%s' type.", type));
-                }
+                if (initializer instanceof ParsingExpression.Literal
+                        && !Token.checkType(type, ((ParsingExpression.Literal) initializer).value))
+                    throw cfpl.newError(name, String.format("Expected '%s' type.", type));
             } else
                 initializer = getDefaultLiteral(type);
             if (!variablesType.containsKey(name.lexeme))
@@ -180,13 +172,9 @@ public class Parser {
                     type = variablesType.get(name.lexeme);
                 else
                     throw cfpl.newError(name, String.format("Undefined variable '%s'.", name.lexeme));
-                if (value instanceof ParsingExpression.Literal) {
-                    ParsingExpression.Literal initial = (ParsingExpression.Literal) value;
-                    if (type == TokenType.FLOAT && Token.checkType(TokenType.INT, initial.value))
-                        value = new ParsingExpression.Literal((double) initial.value);
-                    else if (!Token.checkType(type, initial.value))
-                        throw cfpl.newError(name, String.format("Expected '%s' type.", type));
-                }
+                if (value instanceof ParsingExpression.Literal
+                        && !Token.checkType(type, ((ParsingExpression.Literal) value).value))
+                    throw cfpl.newError(name, String.format("Expected '%s' type.", type));
                 return new ParsingExpression.Assign(name, value, type);
             }
             throw cfpl.newError(equals, "Invalid assignment target.");
@@ -318,7 +306,7 @@ public class Parser {
     }
 
     private ParsingStatement parseInput() throws Exception {
-        expectThenNext(TokenType.COLON, "Expected ':' after 'OUTPUT'.");
+        expectThenNext(TokenType.COLON, "Expected ':' after 'INPUT'.");
         List<ParsingExpression.Variable> variables = new ArrayList<ParsingExpression.Variable>();
         variables.add(
                 new ParsingExpression.Variable(expectThenNext(TokenType.IDENTIFIER, "Expected identifier for input")));

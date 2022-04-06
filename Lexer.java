@@ -457,6 +457,7 @@ public class Lexer {
 
     private int string_literal(int i) throws Exception {
         String literal = "";
+        int startColumn = i;
         int[] SCResult;
         for (++i; i < sourceCode.length(); i++) {
             char current = sourceCode.charAt(i);
@@ -470,6 +471,9 @@ public class Lexer {
             } else
                 literal += current;
         }
+        if (i >= sourceCode.length())
+            throw cfpl.newError(line, Character.toString(sourceCode.charAt(startColumn)),
+                    "Unclosed string literal.");
         tokens.add(new Token(TokenType.STR_LIT, literal, literal, line, column));
         return i;
     }

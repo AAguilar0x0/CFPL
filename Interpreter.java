@@ -145,9 +145,11 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
         for (ParsingExpression.Variable v : stmt.variables) {
             Object value = global.get(v.name);
             try {
-                if ("java.lang.Character".equals(value.getClass().getName()))
+                if ("java.lang.Character".equals(value.getClass().getName())) {
+                    if (x > 0)
+                        scanner.nextLine();
                     global.assign(v.name, (char) scanner.nextLine().charAt(0));
-                else if ("java.lang.Double".equals(value.getClass().getName()))
+                } else if ("java.lang.Double".equals(value.getClass().getName()))
                     global.assign(v.name, (double) scanner.nextDouble());
                 else if ("java.lang.Integer".equals(value.getClass().getName()))
                     global.assign(v.name, (int) scanner.nextInt());

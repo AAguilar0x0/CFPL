@@ -1,0 +1,16 @@
+VAR k=7 AS INT
+START
+WHILE(k<15)
+START
+IF(k>10)
+START
+OUTPUT: k + 1 & "#"
+STOP
+ELSE
+START
+OUTPUT: k & "#"
+STOP
+k=k+1
+STOP
+STOP
+

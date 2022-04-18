@@ -1,0 +1,5 @@
+VAR m = -7, n AS INT
+START
+n = -m
+OUTPUT: n
+STOP

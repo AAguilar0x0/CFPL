@@ -1,8 +1,8 @@
-# Language Specification of CIT's First Programming Language (CFPL)
+# Language Specification of CFPL
 
 ## Introduction
 
-CFPL is a very simple programming language that allows the programmer to achieve fluency in minutes. It is a strongly typed programming language. It is intended for students enrolled in programming languages. It aims to train them on how to build a pure interpreter.
+CFPL is a very simple programming language that allows the programmer to achieve fluency in minutes. It is a strongly typed dynamic programming language.
 
 Sample Program:
 

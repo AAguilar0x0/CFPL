@@ -1,0 +1,5 @@
+VAR p = 6 AS INT
+START
+p=p+2 
+OUTPUT: p
+STOP

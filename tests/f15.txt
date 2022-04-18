@@ -1,0 +1,5 @@
+VAR res AS BOOL
+START
+res="TRUE" 
+OUTPUT: (res AND ("FALSE" AND "TRUE"))
+STOP

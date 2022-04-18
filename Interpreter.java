@@ -57,6 +57,8 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
                 if (right instanceof Integer)
                     return -(int) right;
                 break;
+            default:
+                throw cfpl.newError(expr.operator, "Invalid unary operator.");
         }
 
         return null;
@@ -195,7 +197,11 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
     @Override
     public Object assign(ParsingExpression.Assign expr) throws Exception {
         Object value = evaluate(expr.value);
-        if (!Token.checkType(expr.type, value))
+        if (expr.type == TokenType.FLOAT && Token.checkType(value, TokenType.INT)) {
+            double x = Double.parseDouble(value.toString());
+            value = x;
+        }
+        if (!Token.checkType(value, expr.type))
             throw cfpl.newError(expr.name, String.format("Expected expression value as '%s'.", expr.type));
         global.assign(expr.name, value);
 
@@ -298,9 +304,9 @@ class Interpreter implements ParsingExpression.Visitor<Object>,
                     throw cfpl.newError(expr.operator, "Operand must be an integer.");
             case AMPERSAND:
                 return stringify(left) + stringify(right);
+            default:
+                throw cfpl.newError(expr.operator, "Invalid binary operator.");
         }
-
-        return null;
     }
 
     private void checkNumberOperand(Token operator, Object operand) throws Exception {

@@ -21,7 +21,7 @@ public class CFPL {
             }
             br.close();
         } catch (Exception e) {
-            System.out.println("[Error] File not found.");
+            System.out.print("[Error] File not found.");
         }
     }
 
@@ -49,29 +49,52 @@ public class CFPL {
 
     public Exception newError(Token token, String message) {
         String lineCode = getCodeAtLine(token.line);
+        String errorPoint = " ".repeat(token.column - 1) + "^";
 
         return new Exception(
-                String.format("%s\nline-number %d on %s '%s'.\n%s", message, token.line, token.type, token.lexeme,
-                        lineCode));
+                String.format("%s\n[line: %d, column: %d] on %s '%s'.\n%s\n%s", message, token.line + 1, token.column,
+                        token.type,
+                        token.lexeme,
+                        lineCode, errorPoint));
     }
 
-    public Exception newError(int line, String atFault, String message) {
+    public Exception newError(int line, int column, String atFault, String message) {
         String lineCode = getCodeAtLine(line);
+        String errorPoint = " ".repeat(column - 1) + "^";
 
         return new Exception(
-                String.format("%s\nline-number %d on %s.\n%s", message, line, atFault, lineCode));
+                String.format("%s\n[line: %d, column: %d] on %s.\n%s\n%s", message, line + 1, column, atFault, lineCode,
+                        errorPoint));
     }
 
     public void execute() throws Exception {
+        String errorType = "";
         try {
             lexer = new Lexer(this);
-            List<Token> tokens = lexer.run();
+            List<Token> tokens;
+            try {
+                tokens = lexer.run();
+            } catch (Exception e) {
+                errorType = "Lexer-Error";
+                throw e;
+            }
             parser = new Parser(this);
-            List<ParsingStatement> statements = parser.parse(tokens);
+            List<ParsingStatement> statements;
+            try {
+                statements = parser.parse(tokens);
+            } catch (Exception e) {
+                errorType = "Parser-Error";
+                throw e;
+            }
             interpret = new Interpreter(this);
-            interpret.interpret(statements);
+            try {
+                interpret.interpret(statements);
+            } catch (Exception e) {
+                errorType = "Interpreter-Error";
+                throw e;
+            }
         } catch (Exception e) {
-            System.out.println(String.format("\n[Error] %s", e.getMessage()));
+            System.out.print(String.format("[%s] %s", errorType, e.getMessage()));
         }
     }
 

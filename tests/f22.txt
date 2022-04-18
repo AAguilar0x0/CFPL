@@ -1,0 +1,18 @@
+START
+	IF (6<>5)
+		START
+			IF(3>9)
+				START
+					OUTPUT: "STAR"
+				STOP
+			ELSE
+				START
+					OUTPUT: "MOON"
+				STOP
+		STOP
+	ELSE
+		START
+			OUTPUT: "SKY"
+		STOP
+STOP
+

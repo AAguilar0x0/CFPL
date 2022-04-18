@@ -1,0 +1,5 @@
+VAR a=5  AS INT
+VAR b=1.5 AS INT
+START
+OUTPUT: a*b
+STOP

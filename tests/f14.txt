@@ -1,0 +1,6 @@
+VAR a AS BOOL
+START
+a=(8==8 AND 2>1)
+OUTPUT: a
+STOP
+ 

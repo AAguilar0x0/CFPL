@@ -1,0 +1,13 @@
+VAR a=1, b=0 AS INT
+START
+	IF(7>5)
+	START
+		WHILE(a<4)
+		START
+		b=b+1
+		a=a+1
+		STOP
+	OUTPUT: b
+	STOP
+STOP
+

@@ -1,0 +1,9 @@
+VAR g=6 AS INT
+START
+WHILE (g<12)
+START
+OUTPUT: g & "#"
+g = g + 1
+STOP
+STOP
+

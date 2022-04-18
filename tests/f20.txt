@@ -1,0 +1,7 @@
+START
+IF (9<12)
+START
+OUTPUT: "Less"
+STOP
+STOP
+

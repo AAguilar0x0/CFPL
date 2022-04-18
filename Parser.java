@@ -82,9 +82,14 @@ public class Parser {
         ParsingExpression initializer = null;
         if (compareMultipleThenNext(TokenType.ASSIGNMENT)) {
             initializer = parseExpression();
-            if (initializer instanceof ParsingExpression.Literal
-                    && !Token.checkType(type, ((ParsingExpression.Literal) initializer).value))
-                throw cfpl.newError(name, String.format("Expected '%s' type.", type));
+            if (initializer instanceof ParsingExpression.Literal) {
+                ParsingExpression.Literal initial = (ParsingExpression.Literal) initializer;
+                if (type == TokenType.FLOAT && Token.checkType(initial.value, TokenType.INT)) {
+                    double x = Double.parseDouble(initial.value.toString());
+                    initializer = new ParsingExpression.Literal(x);
+                } else if (!Token.checkType(initial.value, type))
+                    throw cfpl.newError(name, String.format("Expected '%s' type.", type));
+            }
         } else
             initializer = getDefaultLiteral(type);
 
@@ -105,9 +110,14 @@ public class Parser {
             initializer = null;
             if (compareMultipleThenNext(TokenType.ASSIGNMENT)) {
                 initializer = parseExpression();
-                if (initializer instanceof ParsingExpression.Literal
-                        && !Token.checkType(type, ((ParsingExpression.Literal) initializer).value))
-                    throw cfpl.newError(name, String.format("Expected '%s' type.", type));
+                if (initializer instanceof ParsingExpression.Literal) {
+                    ParsingExpression.Literal initial = (ParsingExpression.Literal) initializer;
+                    if (type == TokenType.FLOAT && Token.checkType(initial.value, TokenType.INT)) {
+                        double x = Double.parseDouble(initial.value.toString());
+                        initializer = new ParsingExpression.Literal(x);
+                    } else if (!Token.checkType(initial.value, type))
+                        throw cfpl.newError(name, String.format("Expected '%s' type.", type));
+                }
             } else
                 initializer = getDefaultLiteral(type);
             if (!variablesType.containsKey(name.lexeme))
@@ -161,19 +171,16 @@ public class Parser {
     }
 
     private ParsingExpression parseAssignment() throws Exception {
-        ParsingExpression expr = parseLogicalOr();
+        ParsingExpression expr = parseConcatenation();
         if (compareMultipleThenNext(TokenType.ASSIGNMENT)) {
             Token equals = getPrevious();
             ParsingExpression value = parseAssignment();
             if (expr instanceof ParsingExpression.Variable) {
                 Token name = ((ParsingExpression.Variable) expr).name;
                 TokenType type;
-                if (variablesType.containsKey(name.lexeme))
-                    type = variablesType.get(name.lexeme);
-                else
-                    throw cfpl.newError(name, String.format("Undefined variable '%s'.", name.lexeme));
+                type = variablesType.get(name.lexeme);
                 if (value instanceof ParsingExpression.Literal
-                        && !Token.checkType(type, ((ParsingExpression.Literal) value).value))
+                        && !Token.checkType(((ParsingExpression.Literal) value).value, type))
                     throw cfpl.newError(name, String.format("Expected '%s' type.", type));
                 return new ParsingExpression.Assign(name, value, type);
             }
@@ -186,11 +193,23 @@ public class Parser {
         return expr;
     }
 
+    private ParsingExpression parseConcatenation() throws Exception {
+        ParsingExpression expr = parseLogicalOr();
+        while (compareMultipleThenNext(TokenType.AMPERSAND)) {
+            Token operator = getPrevious();
+            ParsingExpression right = parseLogicalOr();
+            expr = new ParsingExpression.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
     private ParsingExpression parseLogicalOr() throws Exception {
         ParsingExpression expr = parseLogicalAnd();
         while (compareMultipleThenNext(TokenType.OR)) {
             Token operator = getPrevious();
             ParsingExpression right = parseLogicalAnd();
+            expectLogicalExpressions(right);
             expr = new ParsingExpression.Logical(expr, operator, right);
         }
 
@@ -202,6 +221,7 @@ public class Parser {
         while (compareMultipleThenNext(TokenType.AND)) {
             Token operator = getPrevious();
             ParsingExpression right = parseEquality();
+            expectLogicalExpressions(right);
             expr = new ParsingExpression.Logical(expr, operator, right);
         }
 
@@ -233,7 +253,7 @@ public class Parser {
 
     private ParsingExpression parseTerm() throws Exception {
         ParsingExpression expr = parseFactor();
-        while (compareMultipleThenNext(TokenType.SUBTRACTION, TokenType.ADDITION, TokenType.AMPERSAND)) {
+        while (compareMultipleThenNext(TokenType.SUBTRACTION, TokenType.ADDITION)) {
             Token operator = getPrevious();
             ParsingExpression right = parseFactor();
             expr = new ParsingExpression.Binary(expr, operator, right);
@@ -257,6 +277,8 @@ public class Parser {
         if (compareMultipleThenNext(TokenType.ADDITION, TokenType.SUBTRACTION, TokenType.NOT)) {
             Token operator = getPrevious();
             ParsingExpression right = parseUnary();
+            if (operator.type == TokenType.NOT)
+                expectLogicalExpressions(right);
             return new ParsingExpression.Unary(operator, right);
         }
 
@@ -267,8 +289,11 @@ public class Parser {
         if (compareMultipleThenNext(TokenType.INT_LIT, TokenType.FLOAT_LIT, TokenType.BOOL_LIT, TokenType.CHAR_LIT,
                 TokenType.STR_LIT))
             return new ParsingExpression.Literal(getPrevious().literal);
-        if (compareMultipleThenNext(TokenType.IDENTIFIER))
+        if (compareMultipleThenNext(TokenType.IDENTIFIER)) {
+            if (!varDeclarations && !variablesType.containsKey(getPrevious().lexeme))
+                throw cfpl.newError(getPrevious(), String.format("Undefined variable '%s'.", getPrevious().lexeme));
             return new ParsingExpression.Variable(getPrevious());
+        }
         if (compareMultipleThenNext(TokenType.LEFT_PARENTHESIS)) {
             ParsingExpression expr = parseExpression();
             expectThenNext(TokenType.RIGHT_PARENTHESIS, "Expected ')' after expression.");
@@ -290,9 +315,9 @@ public class Parser {
         if (compareMultipleThenNext(TokenType.ELSE)) {
             expectThenNext(TokenType.EOL, "Expected new line after if 'ELSE'.");
             expectTokenAndEOL(TokenType.START, "Expected 'START' before code block.");
+            inControlStructure = true;
             elseBranch = parseStatement();
         }
-        inControlStructure = false;
 
         return new ParsingStatement.If(condition, thenBranch, elseBranch, ifToken);
     }
@@ -325,7 +350,6 @@ public class Parser {
         expectTokenAndEOL(TokenType.START, "Expected 'START' before code block.");
         inControlStructure = true;
         ParsingStatement body = parseStatement();
-        inControlStructure = false;
 
         return new ParsingStatement.While(condition, body);
     }
@@ -344,6 +368,7 @@ public class Parser {
         }
         List<ParsingStatement> statements = new ArrayList<>();
         expectThenNext(TokenType.EOL, "Missing new line after START");
+        inControlStructure = false;
         while (!compareCurrent(TokenType.STOP) && !isAtEnd())
             statements.add(parseDeclaration());
         expectTokenAndEOLNext(TokenType.STOP, "Expected 'STOP' after code block.");
@@ -351,6 +376,43 @@ public class Parser {
             inScope = false;
 
         return statements;
+    }
+
+    private Object expectLogicalExpressions(ParsingExpression expectFrom) throws Exception {
+        TokenType type = TokenType.BOOL;
+        Token erroneous = getPrevious();
+        if (expectFrom instanceof ParsingExpression.Grouping)
+            return expectLogicalExpressions(((ParsingExpression.Grouping) expectFrom).expression);
+        if (expectFrom instanceof ParsingExpression.Unary) {
+            ParsingExpression.Unary instance = (ParsingExpression.Unary) expectFrom;
+            if (instance.operator.type == TokenType.NOT)
+                return expectLogicalExpressions(instance.right);
+        }
+        try {
+            if (expectFrom instanceof ParsingExpression.Logical)
+                return null;
+            if (expectFrom instanceof ParsingExpression.Binary) {
+                ParsingExpression.Binary instance = (ParsingExpression.Binary) expectFrom;
+                if (!Token.logicalComparisonOperators.contains(instance.operator.type)) {
+                    erroneous = instance.operator;
+                    throw new Exception();
+                }
+            } else if (expectFrom instanceof ParsingExpression.Literal) {
+                ParsingExpression.Literal instance = (ParsingExpression.Literal) expectFrom;
+                if (!Token.checkType(instance.value, type))
+                    throw new Exception();
+            } else if (expectFrom instanceof ParsingExpression.Variable) {
+                ParsingExpression.Variable instance = (ParsingExpression.Variable) expectFrom;
+                if (!Token.checkType(type, variablesType.get(instance.name.lexeme))) {
+                    erroneous = instance.name;
+                    throw new Exception();
+                }
+            } else
+                throw new Exception();
+        } catch (Exception e) {
+            throw cfpl.newError(erroneous, String.format("Expected '%s' evaluation result.", type));
+        }
+        return null;
     }
 
     private void expectTokenAndEOLNext(TokenType type, String expectMessage) throws Exception {

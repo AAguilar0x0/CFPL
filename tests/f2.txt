@@ -1,0 +1,3 @@
+VAR b = TRUE, c="FALSE" AS BOOL
+START
+STOP

@@ -1,0 +1,3 @@
+VAR m=10.4, n AS FLOAT
+START
+STOP

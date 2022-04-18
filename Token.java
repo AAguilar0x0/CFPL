@@ -1,4 +1,5 @@
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class Token {
     public static final HashMap<String, TokenType> reservedWords = new HashMap<String, TokenType>() {
@@ -63,19 +64,61 @@ public class Token {
         }
     };
 
-    public static boolean checkType(TokenType expected, Object actual) {
-        switch (expected) {
-            case BOOL:
-                return "java.lang.Boolean".equals(actual.getClass().getName());
-            case CHAR:
-                return "java.lang.Character".equals(actual.getClass().getName());
-            case FLOAT:
-                return "java.lang.Double".equals(actual.getClass().getName());
-            case INT:
-                return "java.lang.Integer".equals(actual.getClass().getName());
-            default:
-                return false;
+    public static final HashSet<TokenType> logicalComparisonOperators = new HashSet<TokenType>() {
+        {
+            add(TokenType.GREATER);
+            add(TokenType.LESSER);
+            add(TokenType.GREATER_EQUAL);
+            add(TokenType.LESSER_EQUAL);
+            add(TokenType.EQUAL);
+            add(TokenType.NOT_EQUAL);
+            add(TokenType.AND);
+            add(TokenType.OR);
+            add(TokenType.NOT);
         }
+    };
+
+    public static boolean checkType(Object value, TokenType... variableType) {
+        boolean result = false;
+        types: for (TokenType tokenType : variableType) {
+            switch (tokenType) {
+                case BOOL:
+                    if (value instanceof TokenType) {
+                        TokenType instance = (TokenType) value;
+                        result = instance == TokenType.BOOL || instance == TokenType.BOOL_LIT;
+                        break types;
+                    }
+                    result = value instanceof Boolean;
+                    break types;
+                case CHAR:
+                    if (value instanceof TokenType) {
+                        TokenType instance = (TokenType) value;
+                        result = instance == TokenType.CHAR || instance == TokenType.CHAR_LIT;
+                        break types;
+                    }
+                    result = value instanceof Character;
+                    break types;
+                case FLOAT:
+                    if (value instanceof TokenType) {
+                        TokenType instance = (TokenType) value;
+                        result = instance == TokenType.FLOAT || instance == TokenType.FLOAT_LIT;
+                        break types;
+                    }
+                    result = value instanceof Double;
+                    break types;
+                case INT:
+                    if (value instanceof TokenType) {
+                        TokenType instance = (TokenType) value;
+                        result = instance == TokenType.INT || instance == TokenType.INT_LIT;
+                        break types;
+                    }
+                    result = value instanceof Integer;
+                    break types;
+                default:
+                    result = false;
+            }
+        }
+        return result;
     }
 
     final TokenType type;

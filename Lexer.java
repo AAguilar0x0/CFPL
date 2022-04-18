@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
@@ -31,6 +30,7 @@ public class Lexer {
     }
 
     public List<Token> run() throws Exception {
+        int index;
         for (int i = 0; i < sourceCode.length(); i++, column++) {
             char current = sourceCode.charAt(i);
             if (firstInLine && current == '\n') {
@@ -78,7 +78,9 @@ public class Lexer {
                         break;
                     case '*':
                         if (firstInLine) {
-                            i = comment(i);
+                            index = comment(i);
+                            column += index - i;
+                            i = index;
                             continue;
                         }
                         tokens.add(
@@ -91,40 +93,56 @@ public class Lexer {
                         tokens.add(new Token(TokenType.MODULO, Character.toString(current), null, line, column));
                         break;
                     case '=':
-                        i = assign_equal(i);
+                        index = assign_equal(i);
+                        column += index - i;
+                        i = index;
                         break;
                     case '<':
-                        i = lesser_equal_nequal(i);
+                        index = lesser_equal_nequal(i);
+                        column += index - i;
+                        i = index;
                         break;
                     case '>':
-                        i = greater_equal(i);
+                        index = greater_equal(i);
+                        column += index - i;
+                        i = index;
                         break;
                     default:
                         if (Quotation.equalsSingleQuote(current)) {
-                            i = character_literal(i);
+                            index = character_literal(i);
+                            column += index - i;
+                            i = index;
                             break;
                         } else if (Quotation.equalsDoubleQuote(current)) {
-                            int index = bool_literal(i);
-                            if (index == i)
-                                i = string_literal(i);
-                            else
-                                i = index;
+                            index = bool_literal(i);
+                            if (index == i) {
+                                int[] result = string_literal(i);
+                                if (result[0] == 1)
+                                    i = result[1];
+                                index = result[2];
+                            }
+                            column += index - i;
+                            i = index;
                             break;
                         } else if (current == '.' || Character.isDigit(current)) {
-                            i = number_literal(i);
+                            index = number_literal(i);
+                            column += index - i;
+                            i = index;
                             break;
                         } else if (current == '_' || current == '$' || Character.isAlphabetic(current)) {
-                            i = words(i);
+                            index = words(i);
+                            column += index - i;
+                            i = index;
                             break;
                         }
-                        throw cfpl.newError(line, Character.toString(current), "Invalid character.");
+                        throw cfpl.newError(line, column, Character.toString(current), "Invalid character.");
                 }
                 firstInLine = false;
             }
         }
         tokens.add(new Token(TokenType.EOF, "EOF", null, line, column));
         if (!codeBlock.isEmpty())
-            throw cfpl.newError(line, "START", String.format("'START' is missing 'STOP'"));
+            throw cfpl.newError(line, column, "START", String.format("'START' is missing 'STOP'"));
         return tokens;
     }
 
@@ -190,20 +208,24 @@ public class Lexer {
         }
         int[] SCResult = special_characters(i);
         if (SCResult[0] != -1) {
-            if (SCResult[0] == 1)
-                i = SCResult[1];
+            i = SCResult[1];
             current = (char) SCResult[2];
             tokens.add(new Token(TokenType.CHAR_LIT, Character.toString(current), current, line, column));
-            return ++i;
+            current = sourceCode.charAt(++i);
+            if (!Quotation.equalsSingleQuote(current))
+                throw cfpl.newError(line, column, sourceCode.substring(i - 1, i + 1), "Invalid char literal.");
+            return i;
         }
         ++i;
         current = sourceCode.charAt(i);
-        if (!Quotation.equalsSingleQuote(current))
-            throw cfpl.newError(line, sourceCode.substring(i - 1, i + 1), "Invalid char literal.");
-        --i;
-        current = sourceCode.charAt(i);
-        tokens.add(new Token(TokenType.CHAR_LIT, Character.toString(current), current, line, column));
-        return ++i;
+        if (Quotation.equalsSingleQuote(current)) {
+            --i;
+            current = sourceCode.charAt(i);
+            tokens.add(new Token(TokenType.CHAR_LIT, Character.toString(current), current, line, column));
+            return ++i;
+        }
+
+        throw cfpl.newError(line, column, sourceCode.substring(i - 1, i + 1), "Invalid char literal.");
     }
 
     private int[] evaluateDFA(
@@ -295,7 +317,7 @@ public class Lexer {
         };
         int[] result = evaluateDFA(++i, 0, finalState, deadState, charStateTransitionTable, charToIndex, true);
         if (result[0] == 1)
-            throw cfpl.newError(line, sourceCode.substring(i, result[2]), "Unclosed bool literal.");
+            throw cfpl.newError(line, column, sourceCode.substring(i, result[2]), "Unclosed bool literal.");
         if (finalState.contains(result[1])) {
             String boolLexeme = sourceCode.substring(i, result[2]);
             tokens.add(new Token(TokenType.BOOL_LIT, boolLexeme, stringToBool(boolLexeme), line, column));
@@ -343,9 +365,9 @@ public class Lexer {
         int[] result = evaluateDFA(i, 0, finalState, deadState, charStateTransitionTable, charToIndex, false);
         String res = sourceCode.substring(i, result[2] + 1);
         if (result[0] == 1)
-            throw cfpl.newError(line, res, "Unclosed string literal.");
+            throw cfpl.newError(line, column, res, "Unclosed string literal.");
         if (deadState.contains(result[1])) {
-            throw cfpl.newError(line, res, "Invalid escape.");
+            throw cfpl.newError(line, column, res, "Invalid escape.");
         }
         returnIndex = result[2];
         return returnIndex;
@@ -428,54 +450,54 @@ public class Lexer {
 
     private int[] special_characters(int i) throws Exception {
         int[] result = new int[3];
-        Arrays.fill(result, -1);
         char current = sourceCode.charAt(i);
         if (current == '[' || current == ']') {
             i = escape(i);
-            result[0] = 1;
-            result[1] = i;
             result[2] = sourceCode.charAt(i - 1);
         } else if (current == '#') {
-            if (!Quotation.equalsSingleQuote(sourceCode.charAt(i + 1))
-                    && !Quotation.equalsDoubleQuote(sourceCode.charAt(i + 1)))
-                throw cfpl.newError(line, sourceCode.substring(i, i + 1), "Invalid char literal.");
-            result[0] = 0;
             result[2] = '\n';
         } else if (current == '\\') {
             if (sourceCode.charAt(++i) == 'n')
-                throw cfpl.newError(line, sourceCode.substring(i - 1, i + 1), "Invalid new line char literal.");
-            current = unescapeJavaString(String.format("\\%c", sourceCode.charAt(i))).charAt(0);
-            if (!Quotation.equalsSingleQuote(sourceCode.charAt(i + 1))
-                    && !Quotation.equalsDoubleQuote(sourceCode.charAt(i + 1)))
-                throw cfpl.newError(line, sourceCode.substring(i - 1, i + 2), "Invalid char literal.");
-            result[0] = 1;
-            result[1] = i;
-            result[2] = current;
+                throw cfpl.newError(line, column, sourceCode.substring(i - 1, i + 1), "Invalid new line character.");
+            result[2] = unescapeJavaString(String.format("\\%c", sourceCode.charAt(i))).charAt(0);
+        } else {
+            result[0] = -1;
         }
+        result[1] = i;
         return result;
     }
 
-    private int string_literal(int i) throws Exception {
+    private int[] string_literal(int i) throws Exception {
         String literal = "";
-        int startColumn = i;
+        int startIndex = i;
+        int startColumn = column;
+        int startLine = line;
         int[] SCResult;
+        int[] result = new int[] { 0, 0, 0 };
         for (++i; i < sourceCode.length(); i++) {
             char current = sourceCode.charAt(i);
+            if (current == '\n') {
+                line++;
+                column = 0;
+                result[0] = 1;
+                result[1] = i;
+            }
             if (Quotation.equalsDoubleQuote(current))
                 break;
             SCResult = special_characters(i);
             if (SCResult[0] != -1) {
-                if (SCResult[0] == 1)
-                    i = SCResult[1];
+                i = SCResult[1];
                 literal += Character.toString(SCResult[2]);
             } else
                 literal += current;
         }
-        if (i >= sourceCode.length())
-            throw cfpl.newError(line, Character.toString(sourceCode.charAt(startColumn)),
-                    "Unclosed string literal.");
+        if (i >= sourceCode.length()) {
+            throw cfpl.newError(result[0] == 1 ? startLine : line, result[0] == 1 ? startColumn : column,
+                    Character.toString(sourceCode.charAt(startIndex)), "Unclosed string literal.");
+        }
         tokens.add(new Token(TokenType.STR_LIT, literal, literal, line, column));
-        return i;
+        result[2] = i;
+        return result;
     }
 
     private int number_literal(int i) throws Exception {
@@ -512,9 +534,9 @@ public class Lexer {
         int[] result = evaluateDFA(i, 0, finalState, deadState, charStateTransitionTable, charToIndex, true);
         String res = sourceCode.substring(i, result[2] + 1);
         if (result[0] == 1)
-            throw cfpl.newError(line, res, "Unclosed code block.");
+            throw cfpl.newError(line, column, res, "Unclosed code block.");
         if (deadState.contains(result[1]))
-            throw cfpl.newError(line, res, "Invalid number literal.");
+            throw cfpl.newError(line, column, res, "Invalid number literal.");
         if (result[1] == 1) {
             tokens.add(new Token(TokenType.INT_LIT, res, Integer.parseInt(res), line, column));
             returnIndex = result[2];
@@ -558,7 +580,7 @@ public class Lexer {
         int[] result = evaluateDFA(i, 0, finalState, deadState, charStateTransitionTable, charToIndex, true);
         String res = sourceCode.substring(i, result[2] + 1);
         if (result[0] == 1)
-            throw cfpl.newError(line, res, "Invalid syntax.");
+            throw cfpl.newError(line, column, res, "Invalid syntax.");
         if (finalState.contains(result[1])) {
             Token temp;
             if (Token.reservedWords.containsKey(res)) {
@@ -569,7 +591,7 @@ public class Lexer {
                         break;
                     case STOP:
                         if (codeBlock.isEmpty())
-                            throw cfpl.newError(line, "STOP", "'STOP' is missing 'START'");
+                            throw cfpl.newError(line, column, "STOP", "'STOP' is missing 'START'");
                         codeBlock.pop();
                         break;
                     default:

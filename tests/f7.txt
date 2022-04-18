@@ -1,0 +1,4 @@
+VAR q=2 AS INT
+START
+OUTPUT: q + 5 
+STOP

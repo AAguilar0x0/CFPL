@@ -1,0 +1,7 @@
+VAR x AS INT
+VAR y AS INT
+START
+INPUT: x
+y = x + 1
+OUTPUT: "[[]" & (y+2) & "[]]"
+STOP
